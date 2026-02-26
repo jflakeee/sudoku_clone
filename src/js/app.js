@@ -98,6 +98,9 @@ let currentScreen = 'main';
 /** @type {number | null} Auto-save interval id. */
 let autoSaveId = null;
 
+/** @type {number} Screen transition generation counter to invalidate stale cleanups. */
+let transitionGen = 0;
+
 /**
  * Navigate to a screen.
  *
@@ -117,7 +120,7 @@ function navigate(screenName, params) {
         screenHistory.push(currentScreen);
     }
 
-    showScreen(screenName, params);
+    showScreen(screenName, params, 'forward');
 }
 
 /**
@@ -126,9 +129,9 @@ function navigate(screenName, params) {
 function goBack() {
     const prev = screenHistory.pop();
     if (prev) {
-        showScreen(prev);
+        showScreen(prev, undefined, 'back');
     } else {
-        showScreen('main');
+        showScreen('main', undefined, 'back');
     }
 }
 
@@ -137,16 +140,55 @@ function goBack() {
  *
  * @param {string} screenName
  * @param {object} [params]
+ * @param {string} [direction] - 'forward', 'back', or undefined (no animation).
  */
-function showScreen(screenName, params) {
-    // Hide all screens
-    const screens = document.querySelectorAll('.screen');
-    screens.forEach(s => s.classList.remove('active'));
-
-    // Show target screen
+function showScreen(screenName, params, direction) {
     const target = document.getElementById(`screen-${screenName}`);
-    if (target) {
-        target.classList.add('active');
+
+    // Clear any in-progress animations first to prevent race conditions
+    const animClasses = ['screen-enter', 'screen-exit', 'screen-enter-back', 'screen-exit-back'];
+    document.querySelectorAll('.screen').forEach(s => {
+        s.classList.remove(...animClasses);
+        if (s.id !== `screen-${screenName}`) {
+            s.classList.remove('active');
+        }
+    });
+
+    const prevScreenEl = currentScreen
+        ? document.getElementById(`screen-${currentScreen}`)
+        : null;
+
+    // Skip animation for navbar-tab switches between main tabs
+    const isTabSwitch = NAVBAR_SCREENS.has(screenName) && NAVBAR_SCREENS.has(currentScreen);
+
+    // Increment generation to invalidate any pending cleanup from prior transition
+    const gen = ++transitionGen;
+
+    if (direction && prevScreenEl && target && prevScreenEl !== target && !isTabSwitch) {
+        // Animate transition
+        const enterClass = direction === 'back' ? 'screen-enter-back' : 'screen-enter';
+        const exitClass = direction === 'back' ? 'screen-exit-back' : 'screen-exit';
+
+        // Show both for the duration of the animation
+        prevScreenEl.classList.add('active');
+        target.classList.add('active', enterClass);
+        prevScreenEl.classList.add(exitClass);
+
+        const cleanup = () => {
+            // Skip if a newer transition has started
+            if (gen !== transitionGen) return;
+            prevScreenEl.classList.remove('active', exitClass);
+            target.classList.remove(enterClass);
+        };
+
+        target.addEventListener('animationend', cleanup, { once: true });
+        // Fallback cleanup
+        setTimeout(cleanup, 350);
+    } else {
+        // No animation: just switch
+        if (target) {
+            target.classList.add('active');
+        }
     }
 
     currentScreen = screenName;
@@ -253,6 +295,13 @@ function init() {
     // ----- Settings & sound -----
     app.settings = loadSettings();
 
+    // Apply dark mode from saved settings
+    if (app.settings.darkMode) {
+        document.body.classList.add('dark-mode');
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', '#1E1E30');
+    }
+
     try {
         app.sound = new SoundManager(app.settings);
     } catch {
@@ -261,7 +310,7 @@ function init() {
 
     // ----- Core game instances -----
     app.board = new Board();
-    app.input = new InputHandler(app.board);
+    app.input = new InputHandler(app.board, app.settings);
 
     // ----- UI components -----
     const gridEl = document.getElementById('sudoku-grid');
@@ -307,6 +356,110 @@ function init() {
         if (actionTarget) {
             const action = actionTarget.getAttribute('data-action');
             handleGlobalAction(action, actionTarget);
+        }
+    });
+
+    // ----- Keyboard input (PC) -----
+    document.addEventListener('keydown', (e) => {
+        // Only handle keys when on the game screen
+        if (currentScreen !== 'game') return;
+        // Ignore if a modal/overlay is visible
+        const pauseOverlay = document.getElementById('pause-overlay');
+        if (pauseOverlay && pauseOverlay.style.display !== 'none') return;
+        const diffModal = document.getElementById('difficulty-modal');
+        if (diffModal && diffModal.style.display !== 'none') return;
+
+        const key = e.key;
+
+        // Number keys 1-9
+        if (key >= '1' && key <= '9') {
+            e.preventDefault();
+            if (app.input) {
+                app.input.inputNumber(parseInt(key, 10));
+                try { app.sound?.play('place'); } catch { /* ignore */ }
+            }
+            return;
+        }
+
+        // Arrow keys - move selection
+        if (key.startsWith('Arrow') && app.input && app.board) {
+            e.preventDefault();
+            const sel = app.input.getSelectedCell();
+            let row = sel ? sel.row : 4;
+            let col = sel ? sel.col : 4;
+
+            switch (key) {
+                case 'ArrowUp':    row = Math.max(0, row - 1); break;
+                case 'ArrowDown':  row = Math.min(8, row + 1); break;
+                case 'ArrowLeft':  col = Math.max(0, col - 1); break;
+                case 'ArrowRight': col = Math.min(8, col + 1); break;
+            }
+
+            app.input.selectCell(row, col);
+            if (app.highlightUI) {
+                app.highlightUI.highlightSelection(row, col, app.board.getBoard());
+            }
+            if (app.numberpadUI) {
+                app.numberpadUI.highlightNumber(app.board.getCellValue(row, col));
+            }
+            try { app.sound?.play('tap'); } catch { /* ignore */ }
+            return;
+        }
+
+        // Backspace/Delete - erase
+        if (key === 'Backspace' || key === 'Delete') {
+            e.preventDefault();
+            if (app.input) {
+                app.input.erase();
+                try { app.sound?.play('tap'); } catch { /* ignore */ }
+            }
+            return;
+        }
+
+        // Ctrl+Z - undo
+        if ((e.ctrlKey || e.metaKey) && key === 'z') {
+            e.preventDefault();
+            if (app.input) {
+                app.input.undo();
+                try { app.sound?.play('undo'); } catch { /* ignore */ }
+            }
+            return;
+        }
+
+        // N - toggle notes
+        if (key === 'n' || key === 'N') {
+            e.preventDefault();
+            if (app.input) {
+                const isOn = app.input.toggleNotes();
+                if (app.toolbarUI) {
+                    app.toolbarUI.setNoteMode(isOn);
+                }
+            }
+            return;
+        }
+
+        // H - hint
+        if (key === 'h' || key === 'H') {
+            e.preventDefault();
+            if (app.input) {
+                app.input.useHint();
+            }
+            return;
+        }
+
+        // Escape - deselect
+        if (key === 'Escape') {
+            e.preventDefault();
+            if (app.input) {
+                app.input.selectCell(-1, -1);
+            }
+            if (app.highlightUI) {
+                app.highlightUI.clearAll();
+            }
+            if (app.numberpadUI) {
+                app.numberpadUI.clearHighlight();
+            }
+            return;
         }
     });
 
@@ -370,6 +523,18 @@ function handleGlobalAction(action, target) {
         default:
             break;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Service Worker registration
+// ---------------------------------------------------------------------------
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {
+            // SW registration failed – app works fine without it.
+        });
+    });
 }
 
 // ---------------------------------------------------------------------------

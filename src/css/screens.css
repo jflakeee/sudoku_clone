@@ -781,6 +781,49 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* --- Stats Progress Bar --- */
+.stat-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--cell-border);
+  border-radius: var(--radius-full);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  transition: width 500ms ease;
+  min-width: 0;
+}
+
+.stats-row.has-bar {
+  flex-wrap: wrap;
+}
+
+.stats-row.has-bar > .stat-bar {
+  flex-basis: 100%;
+}
+
+/* --- High Score Bar (horizontal comparison) --- */
+.hs-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--cell-border);
+  border-radius: var(--radius-full);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.hs-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  transition: width 500ms ease;
+}
+
 .btn-reset-stats {
   margin-top: var(--spacing-lg);
   color: var(--text-error);
@@ -864,6 +907,27 @@
 
 .award-month.has-awards .award-month-icon {
   opacity: 1;
+}
+
+/* Challenge achievements */
+.award-month.challenge-item {
+  text-align: center;
+}
+
+.award-month.challenge-item .award-month-icon {
+  font-size: 1.6rem;
+  opacity: 0.3;
+  filter: grayscale(1);
+  transition: all var(--transition-normal);
+}
+
+.award-month.challenge-item.achieved .award-month-icon {
+  opacity: 1;
+  filter: none;
+}
+
+.award-month.challenge-item.achieved {
+  background: linear-gradient(135deg, rgba(41, 121, 255, 0.1), rgba(41, 121, 255, 0.05));
 }
 
 

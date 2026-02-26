@@ -136,7 +136,7 @@ function onShow(params) {
 
     // --- Daily challenge completion ---
     if (isDaily) {
-        markDailyCompleted();
+        markDailyCompleted(params.dailyDate);
     }
 
     // --- Clear saved game ---
@@ -250,11 +250,13 @@ function updateHighScoreDisplay(difficulty) {
 }
 
 /**
- * Mark today's daily challenge as completed and update streak.
+ * Mark a daily challenge date as completed and update streak.
+ *
+ * @param {string} [dateStr] - The date to mark (YYYY-MM-DD). Defaults to today.
  */
-function markDailyCompleted() {
+function markDailyCompleted(dateStr) {
     const daily = loadDailyChallenge();
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = dateStr || new Date().toISOString().slice(0, 10);
 
     if (!daily.completed.includes(todayStr)) {
         daily.completed.push(todayStr);

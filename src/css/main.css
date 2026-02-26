@@ -110,6 +110,82 @@ a {
   --transition-slow: 350ms ease;
 }
 
+/* --- Dark Mode Override --- */
+body.dark-mode {
+  --bg-main: #121220;
+  --bg-white: #1E1E30;
+
+  --primary: #448AFF;
+  --primary-light: #5C9CFF;
+  --primary-dark: #2979FF;
+
+  --text-given: #E0E0E0;
+  --text-input: #5C9CFF;
+  --text-error: #EF5350;
+  --text-primary: #E8E8E8;
+  --text-secondary: #9E9EB0;
+  --text-muted: #6B6B80;
+
+  --cell-selected: rgba(68, 138, 255, 0.3);
+  --cell-highlight: rgba(68, 138, 255, 0.1);
+  --cell-same-number: rgba(68, 138, 255, 0.2);
+
+  --grid-border: #555;
+  --block-border: #555;
+  --cell-border: #333;
+
+  --note-color: #8888A0;
+  --error-bg: rgba(239, 83, 80, 0.15);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .pause-overlay {
+  background: rgba(18, 18, 32, 0.97);
+}
+
+body.dark-mode .modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .num-btn {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .num-btn:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .settings-group {
+  background: #2A2A40;
+}
+
+body.dark-mode .setting-row:not(:last-child) {
+  border-bottom-color: rgba(85, 85, 85, 0.5);
+}
+
+body.dark-mode .stats-tabs {
+  border-bottom-color: #333;
+}
+
+body.dark-mode .stats-row {
+  border-bottom-color: #333;
+}
+
+body.dark-mode .awards-tabs {
+  border-bottom-color: #333;
+}
+
+body.dark-mode .navbar {
+  border-top-color: #333;
+}
+
+body.dark-mode .toggle-slider {
+  background: #444;
+}
+
 /* --- Body --- */
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, 'Helvetica Neue', Arial, sans-serif;

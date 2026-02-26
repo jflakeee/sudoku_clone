@@ -47,6 +47,9 @@ let hintBadgeEl = null;
 /** @type {boolean} Whether the current game is a daily challenge. */
 let isDaily = false;
 
+/** @type {string|null} Daily challenge date string (YYYY-MM-DD). */
+let dailyDate = null;
+
 /** @type {object | null} Reference to global app object. */
 let _app = null;
 
@@ -149,6 +152,7 @@ function onShow(params) {
     if (!_app || !_app.board) return;
 
     isDaily = !!params.daily;
+    dailyDate = params.date || null;
 
     if (params.loadSaved) {
         restoreSavedGame();
@@ -435,24 +439,21 @@ function onGameComplete(detail) {
     try { _app.sound?.play('complete'); } catch { /* ignore */ }
 
     // Trigger wave animation, then navigate to complete screen
+    const completeParams = {
+        score,
+        time: elapsed,
+        difficulty,
+        mistakes,
+        isDaily,
+        dailyDate: dailyDate || _app.board?.getDailyDate(),
+    };
+
     if (_app.gridUI) {
         animateCompletionWave(_app.gridUI, () => {
-            _app.navigate('complete', {
-                score,
-                time: elapsed,
-                difficulty,
-                mistakes,
-                isDaily,
-            });
+            _app.navigate('complete', completeParams);
         });
     } else {
-        _app.navigate('complete', {
-            score,
-            time: elapsed,
-            difficulty,
-            mistakes,
-            isDaily,
-        });
+        _app.navigate('complete', completeParams);
     }
 }
 

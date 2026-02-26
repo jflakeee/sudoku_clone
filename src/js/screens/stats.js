@@ -96,6 +96,25 @@ function renderStats() {
     setValue('hsWeek', formatNumber(hs.thisWeek));
     setValue('hsMonth', formatNumber(hs.thisMonth));
     setValue('hsAllTime', formatNumber(hs.allTime));
+
+    // --- Progress bars ---
+    // Win rate bar
+    setBar('winRate', winRate);
+
+    // No-mistake win rate bar
+    const noMistakeRate =
+        stats.gamesWon > 0
+            ? Math.round((stats.noMistakeWins / stats.gamesWon) * 100)
+            : 0;
+    setBar('noMistakeWins', noMistakeRate);
+
+    // High score bars (relative to max)
+    const hsValues = [hs.today || 0, hs.thisWeek || 0, hs.thisMonth || 0, hs.allTime || 0];
+    const hsMax = Math.max(...hsValues, 1);
+    setBar('hsToday', Math.round((hsValues[0] / hsMax) * 100));
+    setBar('hsWeek', Math.round((hsValues[1] / hsMax) * 100));
+    setBar('hsMonth', Math.round((hsValues[2] / hsMax) * 100));
+    setBar('hsAllTime', Math.round((hsValues[3] / hsMax) * 100));
 }
 
 /**
@@ -107,6 +126,37 @@ function renderStats() {
 function setValue(statName, value) {
     const el = document.querySelector(`#screen-stats .stat-val[data-stat="${statName}"]`);
     if (el) el.textContent = value;
+}
+
+/**
+ * Add or update a progress bar below a stat row.
+ *
+ * @param {string} statName - The value of the `data-stat` attribute.
+ * @param {number} percent - Fill percentage (0-100).
+ */
+function setBar(statName, percent) {
+    const el = document.querySelector(`#screen-stats .stat-val[data-stat="${statName}"]`);
+    if (!el) return;
+
+    const row = el.closest('.stats-row');
+    if (!row) return;
+
+    row.classList.add('has-bar');
+
+    let bar = row.querySelector('.stat-bar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'stat-bar';
+        const fill = document.createElement('div');
+        fill.className = 'stat-bar-fill';
+        bar.appendChild(fill);
+        row.appendChild(bar);
+    }
+
+    const fill = bar.querySelector('.stat-bar-fill');
+    if (fill) {
+        fill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    }
 }
 
 /**

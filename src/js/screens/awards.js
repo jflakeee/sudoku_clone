@@ -7,7 +7,7 @@
  * @module screens/awards
  */
 
-import { loadDailyChallenge } from '../utils/storage.js';
+import { loadDailyChallenge, loadStats } from '../utils/storage.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -72,21 +72,25 @@ function renderTrophies() {
 
     counts.forEach((count, i) => {
         const item = document.createElement('div');
-        item.className = 'awards-month-item';
+        item.className = 'award-month';
+
+        const icon = document.createElement('span');
+        icon.className = 'award-month-icon';
+        icon.textContent = '\uD83C\uDFC6';
 
         const label = document.createElement('span');
-        label.className = 'awards-month-label';
+        label.className = 'award-month-label';
         label.textContent = MONTH_NAMES[i];
 
         const value = document.createElement('span');
-        value.className = 'awards-month-count';
+        value.className = 'award-month-count';
+        value.textContent = String(count);
+
         if (count > 0) {
-            value.textContent = `\uD83C\uDFC6 ${count}`;
-            item.classList.add('has-trophies');
-        } else {
-            value.textContent = '0';
+            item.classList.add('has-awards');
         }
 
+        item.appendChild(icon);
         item.appendChild(label);
         item.appendChild(value);
         grid.appendChild(item);
@@ -112,28 +116,49 @@ function renderChallenges() {
     const totalCompleted = dailyData.completed.length;
     const currentStreak = dailyData.streak;
 
+    // Compute overall stats across all difficulties
+    const allStats = loadStats();
+    let totalWins = 0;
+    let totalNoMistake = 0;
+    let bestOverallStreak = 0;
+    for (const diff of Object.values(allStats)) {
+        totalWins += diff.gamesWon || 0;
+        totalNoMistake += diff.noMistakeWins || 0;
+        if ((diff.bestStreak || 0) > bestOverallStreak) {
+            bestOverallStreak = diff.bestStreak;
+        }
+    }
+
     const achievements = [
-        { title: '첫 도전', desc: '일일 도전 1회 완료', done: totalCompleted >= 1 },
-        { title: '주간 전사', desc: '일일 도전 7회 완료', done: totalCompleted >= 7 },
-        { title: '월간 마스터', desc: '일일 도전 30회 완료', done: totalCompleted >= 30 },
-        { title: '연승 3일', desc: '3일 연속 도전 완료', done: currentStreak >= 3 },
-        { title: '연승 7일', desc: '7일 연속 도전 완료', done: currentStreak >= 7 },
-        { title: '연승 30일', desc: '30일 연속 도전 완료', done: currentStreak >= 30 },
+        { icon: '\uD83C\uDF1F', title: '첫 도전', desc: '일일 도전 1회 완료', done: totalCompleted >= 1 },
+        { icon: '\u2694\uFE0F', title: '주간 전사', desc: '일일 도전 7회 완료', done: totalCompleted >= 7 },
+        { icon: '\uD83D\uDC51', title: '월간 마스터', desc: '일일 도전 30회 완료', done: totalCompleted >= 30 },
+        { icon: '\uD83D\uDD25', title: '연승 3일', desc: '3일 연속 도전 완료', done: currentStreak >= 3 },
+        { icon: '\u26A1', title: '연승 7일', desc: '7일 연속 도전 완료', done: currentStreak >= 7 },
+        { icon: '\uD83C\uDF0B', title: '연승 30일', desc: '30일 연속 도전 완료', done: currentStreak >= 30 },
+        { icon: '\uD83C\uDFC5', title: '10승 달성', desc: '총 10번 승리', done: totalWins >= 10 },
+        { icon: '\uD83D\uDCAF', title: '완벽주의자', desc: '실수 없이 5번 승리', done: totalNoMistake >= 5 },
     ];
 
     achievements.forEach((ach) => {
         const item = document.createElement('div');
-        item.className = 'awards-month-item challenge-item';
-        if (ach.done) item.classList.add('has-trophies');
+        item.className = 'award-month challenge-item';
+        if (ach.done) item.classList.add('achieved');
+
+        const icon = document.createElement('span');
+        icon.className = 'award-month-icon';
+        icon.textContent = ach.icon;
 
         const title = document.createElement('span');
-        title.className = 'awards-month-label';
+        title.className = 'award-month-label';
         title.textContent = ach.title;
 
         const desc = document.createElement('span');
-        desc.className = 'awards-month-count';
-        desc.textContent = ach.done ? '\u2705' : ach.desc;
+        desc.className = 'award-month-count';
+        desc.style.fontSize = '0.65rem';
+        desc.textContent = ach.done ? '\u2705 달성' : ach.desc;
 
+        item.appendChild(icon);
         item.appendChild(title);
         item.appendChild(desc);
         grid.appendChild(item);
@@ -214,4 +239,12 @@ export function initAwardsScreen(app) {
 
     updateTabUI();
     renderContent();
+
+    // Re-render when the screen becomes visible
+    document.addEventListener('screen-show', (e) => {
+        const detail = /** @type {CustomEvent} */ (e).detail;
+        if (detail.screen === 'awards') {
+            renderContent();
+        }
+    });
 }

@@ -198,26 +198,11 @@
   animation: slideOutRight 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* --- Number Pad Button Fade Out (completed number) --- */
-@keyframes numberFadeOut {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.8);
-    visibility: hidden;
-  }
-}
-
+/* --- Number Pad Button Completed (all 9 placed) --- */
 .num-btn.completed {
-  animation: numberFadeOut 400ms ease-out forwards;
+  opacity: 0.35;
   pointer-events: none;
+  transition: opacity 300ms ease;
 }
 
 /* --- Error Shake --- */

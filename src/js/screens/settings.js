@@ -92,6 +92,15 @@ function applySettingImmediately(key, value) {
             break;
         }
 
+        case 'darkMode':
+            document.body.classList.toggle('dark-mode', value);
+            // Update theme-color meta for PWA/browser chrome
+            {
+                const meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', value ? '#1E1E30' : '#2979FF');
+            }
+            break;
+
         default:
             break;
     }

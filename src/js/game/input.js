@@ -28,8 +28,9 @@ import { getHint } from './hints.js';
 export class InputHandler {
     /**
      * @param {import('./board.js').Board} board - The authoritative game state.
+     * @param {object} [settings] - App settings reference (for vibration check).
      */
-    constructor(board) {
+    constructor(board, settings) {
         /** @type {import('./board.js').Board} */
         this._board = board;
 
@@ -38,6 +39,20 @@ export class InputHandler {
 
         /** @type {boolean} Whether note (pencil-mark) mode is active. */
         this._noteMode = false;
+
+        /** @type {object|null} */
+        this._settings = settings || null;
+    }
+
+    /**
+     * Trigger haptic feedback if vibration is enabled.
+     * @param {number|number[]} pattern - Vibration pattern in ms.
+     * @private
+     */
+    _vibrate(pattern) {
+        if (this._settings?.vibration && navigator.vibrate) {
+            navigator.vibrate(pattern);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -235,6 +250,7 @@ export class InputHandler {
             notes: [],
         });
 
+        this._vibrate([30, 50, 30]);
         this._dispatch('hint-used', {
             row,
             col,
@@ -314,6 +330,7 @@ export class InputHandler {
         });
 
         if (result.score > 0) {
+            this._vibrate(30);
             this._dispatch('score-changed', {
                 score: this._board.getScore(),
                 delta: result.score,
@@ -321,6 +338,7 @@ export class InputHandler {
         }
 
         if (!result.valid) {
+            this._vibrate(100);
             const { current, max } = this._board.getMistakes();
             this._dispatch('mistake', { current, max });
         }

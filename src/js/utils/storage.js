@@ -57,6 +57,7 @@ function getDefaultSettings() {
         smartHints: true,
         numberFirst: false,
         mistakeLimit: true,
+        darkMode: false,
     };
 }
 
