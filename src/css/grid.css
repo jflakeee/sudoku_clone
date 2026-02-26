@@ -1,0 +1,206 @@
+/* ============================================
+   grid.css - Sudoku Grid Styles
+   9x9 Grid with 3x3 block borders, cell states
+   ============================================ */
+
+/* --- Grid Container --- */
+.grid-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--spacing-md);
+  flex-shrink: 0;
+}
+
+/* --- Sudoku Grid --- */
+.sudoku-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 396px;
+  border: 2px solid var(--grid-border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-white);
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* --- Cell Base --- */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: clamp(1.1rem, 4.5vw, 1.5rem);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-right: 1px solid var(--cell-border);
+  border-bottom: 1px solid var(--cell-border);
+  background: var(--bg-white);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove right border on last column */
+.cell:nth-child(9n) {
+  border-right: none;
+}
+
+/* Remove bottom border on last row */
+.cell:nth-child(n+73):nth-child(-n+81) {
+  border-bottom: none;
+}
+
+/* --- 3x3 Block Borders --- */
+
+/* Thick right border every 3rd column (col 3, col 6) */
+.cell:nth-child(9n+3) {
+  border-right: 2px solid var(--block-border);
+}
+
+.cell:nth-child(9n+6) {
+  border-right: 2px solid var(--block-border);
+}
+
+/* Thick bottom border every 3rd row (row 3, row 6) */
+/* Row 3: cells 19-27 */
+.cell:nth-child(n+19):nth-child(-n+27) {
+  border-bottom: 2px solid var(--block-border);
+}
+
+/* Row 6: cells 46-54 */
+.cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom: 2px solid var(--block-border);
+}
+
+/* --- Cell States --- */
+
+/* Given (fixed) numbers */
+.cell.given {
+  font-weight: 700;
+  color: var(--text-given);
+}
+
+/* User-input numbers */
+.cell.user-input {
+  color: var(--text-input);
+  font-weight: 600;
+}
+
+/* Error state */
+.cell.error {
+  color: var(--text-error);
+  background: var(--error-bg);
+}
+
+.cell.error.selected {
+  background: var(--error-bg);
+}
+
+/* Selected cell */
+.cell.selected {
+  background: var(--cell-selected);
+  z-index: 2;
+}
+
+/* Highlighted cells (same row, col, block) */
+.cell.highlighted {
+  background: var(--cell-highlight);
+}
+
+/* Same number highlight */
+.cell.same-number {
+  background: var(--cell-same-number);
+}
+
+/* Priority: selected > same-number > highlighted > error */
+.cell.highlighted.selected {
+  background: var(--cell-selected);
+}
+
+.cell.same-number.selected {
+  background: var(--cell-selected);
+}
+
+/* Cell completed (wave animation) */
+.cell.completed {
+  background: var(--primary);
+  color: var(--bg-white);
+  font-weight: 700;
+}
+
+/* Cell empty placeholder */
+.cell.empty {
+  /* Empty cells get no special styling beyond base */
+}
+
+/* --- Notes Grid Inside Cell --- */
+.cell .notes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+}
+
+.cell .note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--note-color);
+  font-size: 0.35em;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* When a note has a highlighted number */
+.cell .note.note-highlight {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Cell with notes should not show value text */
+.cell.has-notes > .cell-value {
+  display: none;
+}
+
+/* --- Cell Value --- */
+.cell-value {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- Score Float (appears above cell on input) --- */
+.score-float {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+/* --- Grid Responsive --- */
+@media (max-width: 360px) {
+  .cell {
+    font-size: 1rem;
+  }
+
+  .cell .note {
+    font-size: 0.3em;
+  }
+}
+
+@media (min-width: 400px) {
+  .cell {
+    font-size: 1.5rem;
+  }
+}

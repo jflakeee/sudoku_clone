@@ -1,0 +1,328 @@
+/* ============================================
+   animations.css - All Animations & Transitions
+   Keyframes, animation classes, transitions
+   ============================================ */
+
+/* --- Cell Pop (number input) --- */
+@keyframes pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.cell.pop {
+  animation: pop 200ms ease-out;
+}
+
+/* --- Score Float (+250 text) --- */
+@keyframes fadeUp {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -30px);
+  }
+}
+
+.score-float {
+  animation: fadeUp 800ms ease-out forwards;
+}
+
+/* --- Completion Wave --- */
+@keyframes wave {
+  0% {
+    background: var(--bg-white);
+    transform: scale(1);
+  }
+  50% {
+    background: var(--complete-gradient-start);
+    transform: scale(1.08);
+    color: #FFFFFF;
+  }
+  100% {
+    background: var(--complete-gradient-end);
+    transform: scale(1);
+    color: #FFFFFF;
+  }
+}
+
+.cell.wave {
+  animation: wave 400ms ease-out forwards;
+}
+
+/* --- Confetti Fall --- */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.confetti-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confetti-fall 2.5s ease-in forwards;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Confetti color variations */
+.confetti-particle:nth-child(5n+1) { background: #2979FF; }
+.confetti-particle:nth-child(5n+2) { background: #FF6D00; }
+.confetti-particle:nth-child(5n+3) { background: #00C853; }
+.confetti-particle:nth-child(5n+4) { background: #FFD600; }
+.confetti-particle:nth-child(5n+5) { background: #D500F9; }
+
+/* Confetti size variations */
+.confetti-particle:nth-child(3n) {
+  width: 10px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+.confetti-particle:nth-child(3n+1) {
+  width: 6px;
+  height: 10px;
+}
+
+/* Confetti timing variations */
+.confetti-particle:nth-child(odd)  { animation-duration: 2s; }
+.confetti-particle:nth-child(even) { animation-duration: 3s; }
+.confetti-particle:nth-child(4n)   { animation-duration: 2.2s; }
+.confetti-particle:nth-child(4n+2) { animation-duration: 2.8s; }
+
+/* --- Count Up (score counter on complete screen) --- */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.count-up {
+  animation: countUp 400ms ease-out forwards;
+}
+
+/* --- Fade In / Fade Out --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.fade-in {
+  animation: fadeIn 250ms ease-out forwards;
+}
+
+.fade-out {
+  animation: fadeOut 250ms ease-out forwards;
+}
+
+/* --- Screen Slide Transitions --- */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0.5;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0.5;
+  }
+}
+
+.screen-enter {
+  animation: slideInRight 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.screen-exit {
+  animation: slideOutLeft 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.screen-enter-back {
+  animation: slideInLeft 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.screen-exit-back {
+  animation: slideOutRight 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* --- Number Pad Button Fade Out (completed number) --- */
+@keyframes numberFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+    visibility: hidden;
+  }
+}
+
+.num-btn.completed {
+  animation: numberFadeOut 400ms ease-out forwards;
+  pointer-events: none;
+}
+
+/* --- Error Shake --- */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+.cell.shake {
+  animation: shake 300ms ease-out;
+}
+
+/* --- Pulse (hint highlight) --- */
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(41, 121, 255, 0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(41, 121, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(41, 121, 255, 0); }
+}
+
+.cell.hint-pulse {
+  animation: pulse 1s ease-out 2;
+}
+
+/* --- Tool Button Active State --- */
+.tool-btn.active-tool {
+  color: var(--primary);
+  position: relative;
+}
+
+.tool-btn.active-tool::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* --- Modal Overlay Fade --- */
+.modal-overlay {
+  animation: fadeIn 200ms ease-out;
+}
+
+.modal-overlay.closing {
+  animation: fadeOut 200ms ease-out forwards;
+}
+
+.modal-overlay.closing .modal-sheet {
+  animation: slideDown 250ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+/* --- Streak Fire Pulse --- */
+@keyframes firePulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.15); }
+}
+
+.streak-icon {
+  display: inline-block;
+  animation: firePulse 2s ease-in-out infinite;
+}
+
+/* --- Daily Card Shimmer --- */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* --- Number Pad Press --- */
+.num-btn:active {
+  transform: scale(0.92);
+  transition: transform 80ms ease;
+}
+
+/* --- Toolbar Press --- */
+.tool-btn:active {
+  transform: scale(0.9);
+  transition: transform 80ms ease;
+}
+
+/* --- Reduce Motion Preference --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .screen-enter,
+  .screen-exit,
+  .screen-enter-back,
+  .screen-exit-back {
+    animation: none;
+  }
+}
