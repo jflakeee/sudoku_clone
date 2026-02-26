@@ -1013,3 +1013,43 @@
   opacity: 0.3;
   pointer-events: none;
 }
+
+
+/* ===========================
+   Tablet Adaptations
+   =========================== */
+
+@media (min-width: 600px) {
+  /* Game screen: expand grid and spacing */
+  .grid-container {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .sudoku-grid {
+    max-width: 480px;
+  }
+
+  .cell {
+    font-size: 1.7rem;
+  }
+
+  /* Distribute extra vertical space evenly */
+  #screen-game .grid-container {
+    flex: 1;
+    align-items: center;
+  }
+
+  .num-btn {
+    width: 48px;
+    height: 58px;
+    font-size: 1.45rem;
+  }
+
+  .numberpad {
+    gap: 10px;
+  }
+
+  .toolbar {
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+}

@@ -554,6 +554,25 @@ h3 { font-size: 1.1rem; }
 .px-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
 .py-md { padding-top: var(--spacing-md); padding-bottom: var(--spacing-md); }
 
+/* --- Tablet / Large screen adaptation --- */
+@media (min-width: 600px) {
+  #app {
+    max-width: 560px;
+  }
+
+  .pause-overlay {
+    max-width: 560px;
+  }
+
+  .modal-sheet {
+    max-width: 560px;
+  }
+
+  .navbar {
+    max-width: 560px;
+  }
+}
+
 /* --- Scrollbar Styling --- */
 .screen::-webkit-scrollbar {
   width: 0;
