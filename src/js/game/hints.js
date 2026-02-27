@@ -46,7 +46,11 @@ import { getCandidates } from '../core/solver.js';
  * @returns {Hint | null} A hint object, or `null` if the board is already
  *   complete (no empty cells).
  */
-export function getHint(board, solution, notes) {
+export function getHint(board, solution, notes, useSmartHints = true) {
+    if (!useSmartHints) {
+        return findDirectReveal(board, solution);
+    }
+
     // 1. Last empty cell in a row
     const rowHint = findLastInRow(board, solution);
     if (rowHint) return rowHint;

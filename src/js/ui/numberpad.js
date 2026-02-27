@@ -112,4 +112,30 @@ export class NumberpadUI {
             }
         }
     }
+
+    /**
+     * Lock a specific number button (number-first input mode).
+     *
+     * @param {number} num - Digit 1-9 to lock.
+     */
+    lockNumber(num) {
+        this.unlockNumber();
+        if (num >= 1 && num <= 9) {
+            const btn = this._buttons[num - 1];
+            if (btn) {
+                btn.classList.add('locked');
+            }
+        }
+    }
+
+    /**
+     * Remove the locked state from all number buttons.
+     */
+    unlockNumber() {
+        for (const btn of this._buttons) {
+            if (btn) {
+                btn.classList.remove('locked');
+            }
+        }
+    }
 }

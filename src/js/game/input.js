@@ -206,7 +206,8 @@ export class InputHandler {
         const hint = getHint(
             this._board.getBoard(),
             this._board.getSolution(),
-            this._board.notes
+            this._board.notes,
+            this._settings?.smartHints ?? true
         );
 
         if (!hint) return;

@@ -7,7 +7,7 @@
  * @module screens/complete
  */
 
-import { loadStats, saveStats, clearGame, loadDailyChallenge, saveDailyChallenge } from '../utils/storage.js';
+import { loadStats, saveStats, clearGame, loadDailyChallenge, saveDailyChallenge, checkAndResetHighScores } from '../utils/storage.js';
 import { createConfetti, animateScoreCountUp } from '../ui/animations.js';
 
 // ---------------------------------------------------------------------------
@@ -128,7 +128,11 @@ function onShow(params) {
 
     // --- Display message ---
     if (messageEl) {
-        messageEl.textContent = recordMessage || '';
+        if (_app.settings.statsMessage) {
+            messageEl.textContent = recordMessage || '';
+        } else {
+            messageEl.textContent = '';
+        }
     }
 
     // --- Update high-score display ---
@@ -195,7 +199,7 @@ function updateStats(difficulty, score, time, mistakes) {
 
     // High scores
     const hs = ds.highScores;
-    const now = new Date();
+    checkAndResetHighScores(hs);
 
     // Today
     if (score > hs.today) {

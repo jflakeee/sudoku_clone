@@ -89,6 +89,7 @@ function getDefaultDifficultyStats() {
             thisWeek: 0,
             thisMonth: 0,
             allTime: 0,
+            lastDate: '',
         },
     };
 }
@@ -253,6 +254,58 @@ export function loadSettings() {
     }
 
     return { ...getDefaultSettings(), ...stored };
+}
+
+// ---------------------------------------------------------------------------
+// High score period reset
+// ---------------------------------------------------------------------------
+
+/**
+ * Get ISO week number for a given date.
+ *
+ * @param {Date} date
+ * @returns {number}
+ */
+function getISOWeek(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+/**
+ * Check if high scores need to be reset based on date changes.
+ * Resets today/thisWeek/thisMonth scores when the period changes.
+ *
+ * @param {object} hs - The highScores object to check and mutate.
+ */
+export function checkAndResetHighScores(hs) {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
+    if (!hs.lastDate || hs.lastDate === todayStr) {
+        hs.lastDate = todayStr;
+        return;
+    }
+
+    const last = new Date(hs.lastDate + 'T00:00:00');
+
+    // Different day → reset today
+    if (todayStr !== hs.lastDate) {
+        hs.today = 0;
+    }
+
+    // Different ISO week → reset thisWeek
+    if (getISOWeek(now) !== getISOWeek(last) || now.getFullYear() !== last.getFullYear()) {
+        hs.thisWeek = 0;
+    }
+
+    // Different month → reset thisMonth
+    if (now.getMonth() !== last.getMonth() || now.getFullYear() !== last.getFullYear()) {
+        hs.thisMonth = 0;
+    }
+
+    hs.lastDate = todayStr;
 }
 
 // ---------------------------------------------------------------------------

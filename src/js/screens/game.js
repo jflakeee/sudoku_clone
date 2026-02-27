@@ -53,6 +53,12 @@ let dailyDate = null;
 /** @type {object | null} Reference to global app object. */
 let _app = null;
 
+/** @type {number} Locked number for number-first input mode (0 = none). */
+let lockedNumber = 0;
+
+/** @type {object | null} Wake Lock sentinel for auto-lock prevention. */
+let wakeLockSentinel = null;
+
 // ---------------------------------------------------------------------------
 // Public init
 // ---------------------------------------------------------------------------
@@ -91,10 +97,23 @@ export function initGameScreen(app) {
         const detail = /** @type {CustomEvent} */ (e).detail;
         if (detail.screen === 'game') {
             onShow(detail.params || {});
+            requestWakeLock();
+        } else {
+            // Pause timer if we leave the game screen
+            if (_app.board && _app.board.timer) {
+                _app.board.timer.pause();
+            }
+            releaseWakeLock();
         }
-        // Pause timer if we leave the game screen
-        if (detail.screen !== 'game' && _app.board && _app.board.timer) {
-            _app.board.timer.pause();
+    });
+
+    // --- Re-acquire wake lock on visibility change (tab refocus) ---
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            const activeScreen = document.querySelector('.screen.active');
+            if (activeScreen && activeScreen.id === 'screen-game') {
+                requestWakeLock();
+            }
         }
     });
 
@@ -114,10 +133,16 @@ export function initGameScreen(app) {
             if (app.highlightUI) {
                 app.highlightUI.highlightSelection(row, col, app.board.getBoard());
             }
-            // Update numberpad highlight
-            if (app.numberpadUI) {
-                const val = app.board.getCellValue(row, col);
-                app.numberpadUI.highlightNumber(val);
+            // Number-first mode: auto-input locked number on cell click
+            if (_app.settings.numberFirst && lockedNumber > 0 && app.input) {
+                app.input.inputNumber(lockedNumber);
+                try { app.sound?.play('place'); } catch { /* ignore */ }
+            } else {
+                // Update numberpad highlight
+                if (app.numberpadUI) {
+                    const val = app.board.getCellValue(row, col);
+                    app.numberpadUI.highlightNumber(val);
+                }
             }
             // Sound feedback
             try { app.sound?.play('tap'); } catch { /* ignore */ }
@@ -127,10 +152,23 @@ export function initGameScreen(app) {
     // --- Number pad clicks ---
     if (app.numberpadUI) {
         app.numberpadUI.onNumberClick((num) => {
-            if (app.input) {
-                app.input.inputNumber(num);
+            if (_app.settings.numberFirst) {
+                // Number-first mode: lock/unlock number
+                if (lockedNumber === num) {
+                    lockedNumber = 0;
+                    app.numberpadUI.unlockNumber();
+                } else {
+                    lockedNumber = num;
+                    app.numberpadUI.lockNumber(num);
+                }
+                try { app.sound?.play('tap'); } catch { /* ignore */ }
+            } else {
+                // Default mode: input number on selected cell
+                if (app.input) {
+                    app.input.inputNumber(num);
+                }
+                try { app.sound?.play('place'); } catch { /* ignore */ }
             }
-            try { app.sound?.play('place'); } catch { /* ignore */ }
         });
     }
 }
@@ -227,7 +265,12 @@ function restoreSavedGame() {
     // Restore mistakes display
     const { current, max } = _app.board.getMistakes();
     if (mistakesValueEl) {
-        mistakesValueEl.textContent = `${current}/${max}`;
+        if (_app.settings.mistakeLimit) {
+            mistakesValueEl.textContent = `${current}/${max}`;
+            mistakesValueEl.parentElement.style.display = '';
+        } else {
+            mistakesValueEl.parentElement.style.display = 'none';
+        }
     }
 
     // Restore timer display
@@ -259,7 +302,12 @@ function resetGameUI(difficulty) {
         scoreValueEl.textContent = '0';
     }
     if (mistakesValueEl) {
-        mistakesValueEl.textContent = '0/3';
+        if (_app.settings.mistakeLimit) {
+            mistakesValueEl.textContent = '0/3';
+            mistakesValueEl.parentElement.style.display = '';
+        } else {
+            mistakesValueEl.parentElement.style.display = 'none';
+        }
     }
     if (timerValueEl) {
         timerValueEl.textContent = '00:00';
@@ -277,6 +325,12 @@ function resetGameUI(difficulty) {
 
     // Reset hint badge
     updateHintBadge();
+
+    // Reset number-first lock
+    lockedNumber = 0;
+    if (_app.numberpadUI) {
+        _app.numberpadUI.unlockNumber();
+    }
 }
 
 /**
@@ -411,8 +465,8 @@ function onMistake(detail) {
     // Sound feedback
     try { _app.sound?.play('error'); } catch { /* ignore */ }
 
-    // Check game over
-    if (detail.current >= detail.max) {
+    // Check game over only if mistake limit is enabled
+    if (_app.settings.mistakeLimit && detail.current >= detail.max) {
         if (_app.board && _app.board.timer) {
             _app.board.timer.pause();
         }
@@ -522,4 +576,35 @@ function handleGameOver() {
     setTimeout(() => {
         _app.navigate('main');
     }, 1500);
+}
+
+// ---------------------------------------------------------------------------
+// Wake Lock (auto-lock prevention)
+// ---------------------------------------------------------------------------
+
+/**
+ * Request a screen wake lock if the autoLock setting is enabled.
+ */
+async function requestWakeLock() {
+    if (!_app?.settings?.autoLock) return;
+    if (!('wakeLock' in navigator)) return;
+
+    try {
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+        wakeLockSentinel.addEventListener('release', () => {
+            wakeLockSentinel = null;
+        });
+    } catch {
+        // Browser denied the request or API not supported — ignore.
+    }
+}
+
+/**
+ * Release the screen wake lock if held.
+ */
+function releaseWakeLock() {
+    if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => { /* ignore */ });
+        wakeLockSentinel = null;
+    }
 }
