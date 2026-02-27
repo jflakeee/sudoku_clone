@@ -61,3 +61,13 @@ https://github.com/jflakeee/sudoku_clone
 7. 숫자 우선 입력 모드 - numberFirst ON 시 숫자 잠금→셀 탭→자동 입력
 + SW 캐시 sudoku-v2 버전업
 기존 61개 Playwright 테스트 전체 통과, GitHub Pages 배포 확인
+
+--- UX 폴리싱 완료 (2026-02-27) ---
+design.md 대비 미비 사항 4건 처리:
+1. 통계 초기화 확인 다이얼로그 - 이미 confirm() 구현되어 있음 (stats.js:201)
+2. 어워드 연도 이동 - < > 버튼 추가, 이전/다음 연도 탐색 (미래 연도 제한)
+3. 키보드 포커스 링 - :focus-visible 아웃라인 전체 인터랙티브 요소 적용
+4. CSS 변수 정리 - --font-* (7단계), --z-* (4단계), --highlight-same 추가, 하드코딩 z-index 변수화
++ SW 캐시 sudoku-v3 버전업
+61개 테스트 전체 통과, GitHub Pages 배포 확인
+→ design.md 대비 미구현 사항 0건
