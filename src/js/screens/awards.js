@@ -237,6 +237,24 @@ export function initAwardsScreen(app) {
         tabsContainer.addEventListener('click', onTabClick);
     }
 
+    // Year navigation
+    const prevYearBtn = document.querySelector('#screen-awards .awards-year-prev');
+    const nextYearBtn = document.querySelector('#screen-awards .awards-year-next');
+    if (prevYearBtn) {
+        prevYearBtn.addEventListener('click', () => {
+            _displayYear--;
+            renderContent();
+        });
+    }
+    if (nextYearBtn) {
+        nextYearBtn.addEventListener('click', () => {
+            if (_displayYear < new Date().getFullYear()) {
+                _displayYear++;
+                renderContent();
+            }
+        });
+    }
+
     updateTabUI();
     renderContent();
 

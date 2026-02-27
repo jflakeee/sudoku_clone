@@ -868,7 +868,10 @@
 }
 
 .awards-year {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
 }
 
