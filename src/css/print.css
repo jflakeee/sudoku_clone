@@ -106,6 +106,28 @@
   color: #222;
 }
 
+/* Dark mode: make preview grid readable */
+body.dark-mode .print-grid {
+  border-color: var(--text-secondary);
+}
+
+body.dark-mode .print-cell {
+  color: var(--text-secondary);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-mode .print-cell.given {
+  color: var(--text-primary);
+}
+
+body.dark-mode .print-cell.block-left {
+  border-left-color: var(--text-secondary);
+}
+
+body.dark-mode .print-cell.block-top {
+  border-top-color: var(--text-secondary);
+}
+
 .print-cell.block-left {
   border-left: 2px solid #333;
 }
