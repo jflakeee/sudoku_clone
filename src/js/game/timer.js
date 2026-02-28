@@ -30,6 +30,15 @@ export class Timer {
 
         /** @type {((formatted: string) => void) | null} Tick callback. */
         this._onTick = null;
+
+        /** @type {boolean} Whether the timer counts down instead of up. */
+        this._isCountdown = false;
+
+        /** @type {number} Duration in milliseconds for countdown mode. */
+        this._duration = 0;
+
+        /** @type {(() => void) | null} Callback when countdown reaches zero. */
+        this._onTimeUp = null;
     }
 
     // -----------------------------------------------------------------------
@@ -49,6 +58,10 @@ export class Timer {
         this._intervalId = setInterval(() => {
             if (this._onTick) {
                 this._onTick(this.getFormatted());
+            }
+            if (this._isCountdown && this.isTimeUp()) {
+                this.pause();
+                if (this._onTimeUp) this._onTimeUp();
             }
         }, 1000);
     }
@@ -76,6 +89,9 @@ export class Timer {
     reset() {
         this.pause();
         this._elapsed = 0;
+        this._isCountdown = false;
+        this._duration = 0;
+        this._onTimeUp = null;
     }
 
     /**
@@ -87,6 +103,9 @@ export class Timer {
         let total = this._elapsed;
         if (this._running && this._startTimestamp !== null) {
             total += performance.now() - this._startTimestamp;
+        }
+        if (this._isCountdown && this._duration) {
+            return Math.max(0, Math.floor((this._duration - total) / 1000));
         }
         return Math.floor(total / 1000);
     }
@@ -130,5 +149,55 @@ export class Timer {
      */
     onTick(callback) {
         this._onTick = callback;
+    }
+
+    /**
+     * Enable or disable countdown mode.
+     *
+     * @param {boolean} isCountdown
+     */
+    setCountdown(isCountdown) {
+        this._isCountdown = isCountdown;
+    }
+
+    /**
+     * Set the countdown duration.
+     *
+     * @param {number} seconds - Duration in seconds.
+     */
+    setDuration(seconds) {
+        this._duration = seconds * 1000;
+    }
+
+    /**
+     * Register a callback for when the countdown reaches zero.
+     *
+     * @param {() => void} callback
+     */
+    onTimeUp(callback) {
+        this._onTimeUp = callback;
+    }
+
+    /**
+     * Get the remaining time in seconds (countdown mode only).
+     *
+     * @returns {number} Remaining seconds, or Infinity if not in countdown mode.
+     */
+    getRemaining() {
+        if (!this._isCountdown || !this._duration) return Infinity;
+        let total = this._elapsed;
+        if (this._running && this._startTimestamp !== null) {
+            total += performance.now() - this._startTimestamp;
+        }
+        return Math.max(0, Math.floor((this._duration - total) / 1000));
+    }
+
+    /**
+     * Check whether the countdown has reached zero.
+     *
+     * @returns {boolean}
+     */
+    isTimeUp() {
+        return this._isCountdown && this.getRemaining() <= 0;
     }
 }

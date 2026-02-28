@@ -294,6 +294,32 @@
   transition: transform 80ms ease;
 }
 
+/* --- Timer Warning Pulse (30 seconds remaining) --- */
+@keyframes timerWarningPulse {
+    0%, 100% { color: var(--text-primary); }
+    50% { color: var(--primary); }
+}
+
+.info-timer.timer-warning .info-value {
+    animation: timerWarningPulse 1s infinite;
+}
+
+/* --- Timer Danger Pulse (10 seconds remaining) --- */
+@keyframes timerDangerPulse {
+    0%, 100% { color: var(--text-error, #f44336); }
+    50% { color: #FF0000; transform: scale(1.1); }
+}
+
+.info-timer.timer-danger .info-value {
+    animation: timerDangerPulse 0.5s infinite;
+}
+
+/* --- Timer Expired --- */
+.info-timer.timer-expired .info-value {
+    animation: shake 300ms ease-out;
+    color: var(--text-error, #f44336);
+}
+
 /* --- Reduce Motion Preference --- */
 @media (prefers-reduced-motion: reduce) {
   *,

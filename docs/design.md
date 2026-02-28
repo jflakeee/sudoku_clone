@@ -19,6 +19,7 @@
 - **렌더링**: DOM 기반 (Canvas 불필요 - UI 중심 앱)
 - **스토리지**: LocalStorage (게임 상태 저장, 통계, 설정)
 - **사운드**: Web Audio API
+- **PWA**: Service Worker + manifest.json (오프라인 캐시)
 - **테스트**: Playwright
 - **빌드**: 없음 (정적 파일 배포) 또는 Vite (번들링 필요시)
 
@@ -264,6 +265,20 @@ App
 | 메모 토글 | 메모 모드 ON/OFF |
 | 힌트 | 스마트 힌트 표시 |
 
+### 4.3.1 키보드 입력
+
+게임 플레이 화면에서 키보드 입력을 지원합니다:
+
+| 키 | 동작 |
+|------|------|
+| 화살표 키 (←↑→↓) | 셀 이동 |
+| 1-9 숫자 키 | 선택된 셀에 숫자 입력 |
+| Backspace / Delete | 선택된 셀의 숫자/메모 삭제 |
+| N | 메모 모드 토글 |
+| Ctrl+Z | 실행 취소 |
+| H | 힌트 |
+| Escape | 선택 해제 |
+
 ### 4.4 게임 완료 화면
 
 - 모든 셀 채워질 때 트리거
@@ -309,6 +324,7 @@ App
 | 스마트 힌트 | ON | 교육용 힌트 |
 | 숫자 우선 입력 | OFF | 숫자 길게 눌러 잠금 |
 | 실수 한도 | ON | 게임당 실수 3회 제한 |
+| 다크 모드 | OFF | 다크 테마 적용 |
 
 ### 4.9 플레이 방법 (Tutorial)
 
@@ -319,6 +335,15 @@ App
 - 건너뛰기 버튼
 - 좌/우 네비게이션 화살표
 - 페이지 인디케이터 (dots)
+
+### 4.10 규칙 화면
+
+스도쿠 규칙을 설명하는 정적 콘텐츠 화면:
+- **9x9 그리드**: 스도쿠 퍼즐은 9x9 격자로 구성됨
+- **행/열/블록 규칙**: 각 행, 열, 3x3 블록에 1~9 숫자가 한 번씩만 들어가야 함
+- **빈 칸 채우기**: 주어진 숫자를 단서로 빈 칸을 채우는 것이 목표
+
+> 구현: `index.html`에 정적 HTML로 구현됨 (별도 JS 파일 없음)
 
 ---
 
@@ -416,7 +441,8 @@ App
     "statsMessage": true,
     "smartHints": true,
     "numberFirst": false,
-    "mistakeLimit": true
+    "mistakeLimit": true,
+    "darkMode": false
   }
 }
 ```
@@ -426,7 +452,7 @@ App
 ## 8. 프로젝트 폴더 구조
 
 ```
-sudoku_clone/
+sudoku_league/
 ├── docs/                          # 문서
 │   ├── idea_20260226.txt          # 기획 아이디어
 │   ├── design.md                  # 설계 문서 (본 문서)
@@ -438,6 +464,7 @@ sudoku_clone/
 │
 ├── src/                           # 소스 코드
 │   ├── index.html                 # 메인 HTML
+│   ├── sw.js                      # Service Worker
 │   ├── css/
 │   │   ├── main.css               # 공통 스타일
 │   │   ├── grid.css               # 스도쿠 그리드 스타일
@@ -489,23 +516,15 @@ sudoku_clone/
 │       └── icons/                 # 아이콘 (SVG)
 │
 ├── tests/                         # Playwright 테스트
-│   ├── core/
-│   │   ├── generator.test.js
-│   │   ├── solver.test.js
-│   │   └── validator.test.js
-│   ├── game/
-│   │   ├── board.test.js
-│   │   ├── input.test.js
-│   │   ├── notes.test.js
-│   │   └── timer.test.js
-│   ├── screens/
-│   │   ├── main.test.js
-│   │   ├── game.test.js
-│   │   ├── complete.test.js
-│   │   └── daily.test.js
-│   └── e2e/
-│       ├── full-game.test.js
-│       └── navigation.test.js
+│   ├── 01-navigation.spec.js
+│   ├── 02-game-basics.spec.js
+│   ├── 03-input-and-tools.spec.js
+│   ├── 04-game-completion.spec.js
+│   ├── 05-persistence.spec.js
+│   ├── 06-screens.spec.js
+│   ├── 07-dark-mode.spec.js
+│   ├── 08-keyboard.spec.js
+│   └── 09-enhanced-ui.spec.js
 │
 └── RESUME.md                      # 진행 현황
 ```

@@ -101,3 +101,20 @@ export function calculateCompletionBonus(difficulty, mistakes, time) {
 
     return Math.floor(bonus);
 }
+
+/**
+ * Calculate the bonus score for completing a time-attack game.
+ *
+ * @param {string} difficulty - Difficulty level
+ * @param {number} remainingSeconds - Seconds remaining when the puzzle was completed
+ * @param {number} totalSeconds - Total countdown duration in seconds
+ * @param {number} mistakes - Total mistakes made during the game
+ * @returns {number} Bonus points (integer, rounded)
+ */
+export function calculateTimeAttackBonus(difficulty, remainingSeconds, totalSeconds, mistakes) {
+    const multiplier = getDifficultyMultiplier(difficulty);
+    const timeRatio = remainingSeconds / totalSeconds;
+    const timeBonus = 1 + timeRatio * 2;
+    const mistakeFactor = Math.max(0, 1 - 0.2 * mistakes);
+    return Math.round(1500 * multiplier * timeBonus * mistakeFactor);
+}

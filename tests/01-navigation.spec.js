@@ -69,7 +69,10 @@ test.describe('Navigation & Screen Routing', () => {
         const modal = page.locator('#difficulty-modal');
         await expect(modal).toBeHidden();
 
+        // New game goes through mode-select screen first
         await page.click('.btn-new-game');
+        await page.waitForSelector('#screen-mode-select.active');
+        await page.click('[data-action="select-mode"]');
         await expect(modal).toBeVisible();
 
         // Close by clicking overlay background

@@ -196,9 +196,9 @@ function onShow(params) {
         restoreSavedGame();
     } else if (params.daily) {
         const date = params.date || new Date().toISOString().slice(0, 10);
-        startNewGame(params.difficulty || 'easy', date);
+        startNewGame(params.difficulty || 'easy', date, params.mode || 'classic', params);
     } else if (params.difficulty) {
-        startNewGame(params.difficulty);
+        startNewGame(params.difficulty, null, params.mode || 'classic', params);
     }
 }
 
@@ -208,17 +208,58 @@ function onShow(params) {
 
 /**
  * Generate and start a new puzzle at the given difficulty.
+ * For large boards (12x12+), uses a Web Worker to avoid blocking the UI.
  *
  * @param {string} difficulty
  * @param {string} [dailyDate] - ISO date for daily challenge.
+ * @param {string} [mode='classic'] - Game mode.
+ * @param {object} [options={}] - Additional options.
  */
-function startNewGame(difficulty, dailyDate) {
-    _app.board.newGame(difficulty, dailyDate);
+async function startNewGame(difficulty, dailyDate, mode = 'classic', options = {}) {
+    const boardSize = options.boardSize || 9;
+
+    // Large boards: show loading UI + async generation via Web Worker
+    if (boardSize >= 12) {
+        showPuzzleLoading();
+        try {
+            await _app.board.newGameAsync(difficulty, dailyDate, mode, options);
+        } catch {
+            hidePuzzleLoading();
+            // Fallback: synchronous generation (slow but works)
+            _app.board.newGame(difficulty, dailyDate, mode, options);
+        }
+        hidePuzzleLoading();
+    } else {
+        _app.board.newGame(difficulty, dailyDate, mode, options);
+    }
+
+    // Rebuild UI for the current board size
+    const actualSize = _app.board.boardSize || 9;
+    document.body.dataset.gridSize = String(actualSize);
+    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(actualSize);
+    if (_app.highlightUI) _app.highlightUI._gridSize = actualSize;
+    if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(actualSize);
+
+    // Setup countdown for time-attack mode
+    if (mode === 'timeAttack') {
+        const duration = options.duration || 600;
+        _app.board.timer.setCountdown(true);
+        _app.board.timer.setDuration(duration);
+        _app.board.timer.onTimeUp(() => handleTimeUp());
+    }
 
     // Setup timer tick callback
     _app.board.timer.onTick((formatted) => {
         if (timerValueEl && _app.settings.timer) {
             timerValueEl.textContent = formatted;
+        }
+        if (_app.board.mode === 'timeAttack') {
+            const remaining = _app.board.timer.getRemaining();
+            const timerContainer = timerValueEl?.closest('.info-timer');
+            if (timerContainer) {
+                timerContainer.classList.toggle('timer-warning', remaining <= 30 && remaining > 10);
+                timerContainer.classList.toggle('timer-danger', remaining <= 10);
+            }
         }
     });
 
@@ -243,12 +284,32 @@ function restoreSavedGame() {
 
     _app.board.loadState(saved);
 
+    // Rebuild UI for the loaded board size
+    const boardSize = _app.board.boardSize || 9;
+    document.body.dataset.gridSize = String(boardSize);
+    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(boardSize);
+    if (_app.highlightUI) _app.highlightUI._gridSize = boardSize;
+    if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(boardSize);
+
     // Setup timer tick callback
     _app.board.timer.onTick((formatted) => {
         if (timerValueEl && _app.settings.timer) {
             timerValueEl.textContent = formatted;
         }
+        if (_app.board.mode === 'timeAttack') {
+            const remaining = _app.board.timer.getRemaining();
+            const timerContainer = timerValueEl?.closest('.info-timer');
+            if (timerContainer) {
+                timerContainer.classList.toggle('timer-warning', remaining <= 30 && remaining > 10);
+                timerContainer.classList.toggle('timer-danger', remaining <= 10);
+            }
+        }
     });
+
+    // Restore countdown callback for time-attack
+    if (_app.board.mode === 'timeAttack') {
+        _app.board.timer.onTimeUp(() => handleTimeUp());
+    }
 
     // Start the timer
     _app.board.timer.start();
@@ -351,8 +412,9 @@ function renderFullGrid() {
 function renderAllNotes() {
     if (!_app.gridUI || !_app.board) return;
 
-    for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
+    const size = _app.board.boardSize || 9;
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
             const notes = _app.board.notes.get(r, c);
             if (notes.size > 0) {
                 _app.gridUI.showNotes(r, c, notes);
@@ -500,7 +562,14 @@ function onGameComplete(detail) {
         mistakes,
         isDaily,
         dailyDate: dailyDate || _app.board?.getDailyDate(),
+        mode: _app.board?.mode || 'classic',
     };
+
+    if (_app.board?.mode === 'timeAttack') {
+        completeParams.remainingTime = _app.board.timer.getRemaining();
+        completeParams.totalTime = _app.board.timer._duration / 1000;
+        completeParams.success = true;
+    }
 
     if (_app.gridUI) {
         animateCompletionWave(_app.gridUI, () => {
@@ -563,8 +632,51 @@ function handleToolbarAction(action) {
 }
 
 // ---------------------------------------------------------------------------
+// Puzzle loading overlay (for large boards)
+// ---------------------------------------------------------------------------
+
+/**
+ * Show the puzzle generation loading overlay.
+ */
+function showPuzzleLoading() {
+    const overlay = screenEl?.querySelector('.puzzle-loading');
+    if (overlay) overlay.style.display = '';
+}
+
+/**
+ * Hide the puzzle generation loading overlay.
+ */
+function hidePuzzleLoading() {
+    const overlay = screenEl?.querySelector('.puzzle-loading');
+    if (overlay) overlay.style.display = 'none';
+}
+
+// ---------------------------------------------------------------------------
 // Game over
 // ---------------------------------------------------------------------------
+
+/**
+ * Handle time-attack mode time expiry.
+ */
+function handleTimeUp() {
+    if (_app.board && _app.board.timer) {
+        _app.board.timer.pause();
+    }
+    clearGame();
+
+    const difficulty = _app.board ? _app.board.getDifficulty() : 'easy';
+    const score = _app.board ? _app.board.getScore() : 0;
+    const mistakes = _app.board ? _app.board.getMistakes().current : 0;
+
+    _app.navigate('complete', {
+        mode: 'timeAttack',
+        success: false,
+        score,
+        difficulty,
+        mistakes,
+        message: '시간 초과!',
+    });
+}
 
 /**
  * Handle the game-over scenario (3 mistakes).

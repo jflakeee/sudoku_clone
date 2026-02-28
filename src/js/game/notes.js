@@ -1,25 +1,38 @@
 /**
  * Notes (Pencil-Mark) Manager
  *
- * Manages a 9x9 grid of note Sets. Each cell can hold any subset of the
- * digits 1-9 as candidate pencil marks. The manager also supports the
+ * Manages a grid of note Sets. Each cell can hold any subset of the
+ * valid digits as candidate pencil marks. The manager also supports the
  * "auto-clear related notes" behaviour: when a definitive number is placed
  * in a cell, that digit is removed from the notes of every cell in the same
- * row, column, and 3x3 block.
+ * row, column, and block.
+ *
+ * Supports multiple board sizes (4x4, 6x6, 9x9, 12x12, 16x16).
  *
  * @module game/notes
  */
+
+import { getBlockSize } from '../core/board-config.js';
 
 /**
  * @class Notes
  */
 export class Notes {
     /**
-     * Initialise a blank 9x9 notes grid.
+     * Initialise a blank notes grid.
+     *
+     * @param {number} [boardSize=9] - Board dimension
+     * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
      */
-    constructor() {
-        /** @type {Set<number>[][]} 9x9 array of Sets. */
-        this._grid = Notes._createEmptyGrid();
+    constructor(boardSize = 9, blockSize = null) {
+        /** @type {number} */
+        this.boardSize = boardSize;
+
+        /** @type {{rows: number, cols: number}} */
+        this.blockSize = blockSize || getBlockSize(boardSize);
+
+        /** @type {Set<number>[][]} Array of Sets. */
+        this._grid = Notes._createEmptyGrid(this.boardSize);
     }
 
     // -----------------------------------------------------------------------
@@ -30,9 +43,9 @@ export class Notes {
      * Toggle a pencil-mark number in a cell. If the number is already
      * present it is removed; otherwise it is added.
      *
-     * @param {number} row - Row index (0-8).
-     * @param {number} col - Column index (0-8).
-     * @param {number} num - Digit to toggle (1-9).
+     * @param {number} row - Row index.
+     * @param {number} col - Column index.
+     * @param {number} num - Digit to toggle.
      * @returns {{ added: boolean, num: number }} Whether the number was added
      *   (true) or removed (false), and the digit concerned.
      */
@@ -49,8 +62,8 @@ export class Notes {
     /**
      * Retrieve the current set of notes for a cell.
      *
-     * @param {number} row - Row index (0-8).
-     * @param {number} col - Column index (0-8).
+     * @param {number} row - Row index.
+     * @param {number} col - Column index.
      * @returns {Set<number>} Set of note digits.
      */
     get(row, col) {
@@ -60,8 +73,8 @@ export class Notes {
     /**
      * Remove all notes from a cell.
      *
-     * @param {number} row - Row index (0-8).
-     * @param {number} col - Column index (0-8).
+     * @param {number} row - Row index.
+     * @param {number} col - Column index.
      */
     clear(row, col) {
         this._grid[row][col].clear();
@@ -70,28 +83,28 @@ export class Notes {
     /**
      * When a definitive number is placed at (row, col), remove that number
      * from the notes of every related cell (same row, same column, and same
-     * 3x3 block).
+     * block).
      *
-     * @param {number} row - Row index (0-8).
-     * @param {number} col - Column index (0-8).
-     * @param {number} num - The placed digit (1-9).
+     * @param {number} row - Row index.
+     * @param {number} col - Column index.
+     * @param {number} num - The placed digit.
      */
     removeFromRelated(row, col, num) {
         // Same row
-        for (let c = 0; c < 9; c++) {
+        for (let c = 0; c < this.boardSize; c++) {
             this._grid[row][c].delete(num);
         }
 
         // Same column
-        for (let r = 0; r < 9; r++) {
+        for (let r = 0; r < this.boardSize; r++) {
             this._grid[r][col].delete(num);
         }
 
-        // Same 3x3 block
-        const blockRow = Math.floor(row / 3) * 3;
-        const blockCol = Math.floor(col / 3) * 3;
-        for (let r = blockRow; r < blockRow + 3; r++) {
-            for (let c = blockCol; c < blockCol + 3; c++) {
+        // Same block
+        const blockRow = Math.floor(row / this.blockSize.rows) * this.blockSize.rows;
+        const blockCol = Math.floor(col / this.blockSize.cols) * this.blockSize.cols;
+        for (let r = blockRow; r < blockRow + this.blockSize.rows; r++) {
+            for (let c = blockCol; c < blockCol + this.blockSize.cols; c++) {
                 this._grid[r][c].delete(num);
             }
         }
@@ -100,9 +113,9 @@ export class Notes {
     /**
      * Check whether a specific note exists in a cell.
      *
-     * @param {number} row - Row index (0-8).
-     * @param {number} col - Column index (0-8).
-     * @param {number} num - Digit (1-9).
+     * @param {number} row - Row index.
+     * @param {number} col - Column index.
+     * @param {number} num - Digit.
      * @returns {boolean}
      */
     hasNote(row, col, num) {
@@ -112,8 +125,8 @@ export class Notes {
     /**
      * Check whether a cell has no notes at all.
      *
-     * @param {number} row - Row index (0-8).
-     * @param {number} col - Column index (0-8).
+     * @param {number} row - Row index.
+     * @param {number} col - Column index.
      * @returns {boolean}
      */
     isEmpty(row, col) {
@@ -124,7 +137,7 @@ export class Notes {
      * Serialise the entire notes grid to a plain JSON-safe structure
      * (2D array of sorted number arrays).
      *
-     * @returns {number[][][]} 9x9 array of sorted digit arrays.
+     * @returns {number[][][]} Array of sorted digit arrays.
      */
     toJSON() {
         return this._grid.map(row =>
@@ -135,21 +148,21 @@ export class Notes {
     /**
      * Restore the notes grid from data previously produced by `toJSON()`.
      *
-     * @param {number[][][]} data - 9x9 array of digit arrays.
+     * @param {number[][][]} data - Array of digit arrays.
      */
     fromJSON(data) {
-        if (!Array.isArray(data) || data.length !== 9) {
-            this._grid = Notes._createEmptyGrid();
+        if (!Array.isArray(data) || data.length !== this.boardSize) {
+            this._grid = Notes._createEmptyGrid(this.boardSize);
             return;
         }
 
         this._grid = data.map(row => {
-            if (!Array.isArray(row) || row.length !== 9) {
-                return Array.from({ length: 9 }, () => new Set());
+            if (!Array.isArray(row) || row.length !== this.boardSize) {
+                return Array.from({ length: this.boardSize }, () => new Set());
             }
             return row.map(cell => {
                 if (!Array.isArray(cell)) return new Set();
-                return new Set(cell.filter(n => n >= 1 && n <= 9));
+                return new Set(cell.filter(n => n >= 1 && n <= this.boardSize));
             });
         });
     }
@@ -159,14 +172,15 @@ export class Notes {
     // -----------------------------------------------------------------------
 
     /**
-     * Create a fresh 9x9 grid of empty Sets.
+     * Create a fresh grid of empty Sets.
      *
+     * @param {number} [boardSize=9] - Board dimension
      * @returns {Set<number>[][]}
      * @private
      */
-    static _createEmptyGrid() {
-        return Array.from({ length: 9 }, () =>
-            Array.from({ length: 9 }, () => new Set())
+    static _createEmptyGrid(boardSize = 9) {
+        return Array.from({ length: boardSize }, () =>
+            Array.from({ length: boardSize }, () => new Set())
         );
     }
 }

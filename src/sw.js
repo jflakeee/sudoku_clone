@@ -2,7 +2,7 @@
  * Service Worker - Cache-first strategy for offline support
  */
 
-const CACHE_NAME = 'sudoku-v3';
+const CACHE_NAME = 'sudoku-v7';
 
 const PRECACHE_URLS = [
   './',
@@ -23,6 +23,7 @@ const PRECACHE_URLS = [
   './js/core/solver.js',
   './js/core/validator.js',
   './js/core/scorer.js',
+  './js/core/board-config.js',
   './js/ui/grid.js',
   './js/ui/highlight.js',
   './js/ui/numberpad.js',
@@ -40,6 +41,8 @@ const PRECACHE_URLS = [
   './js/screens/awards.js',
   './js/screens/settings.js',
   './js/screens/tutorial.js',
+  './js/screens/mode-select.js',
+  './js/core/puzzle-worker.js',
 ];
 
 // Install: pre-cache all static assets

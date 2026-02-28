@@ -96,6 +96,8 @@ test.describe('Screen Content', () => {
 
     test('difficulty modal has 5 difficulty options', async ({ page }) => {
         await page.click('.btn-new-game');
+        await page.waitForSelector('#screen-mode-select.active');
+        await page.click('[data-action="select-mode"]');
         await page.waitForSelector('#difficulty-modal', { state: 'visible' });
 
         const options = page.locator('.difficulty-option');

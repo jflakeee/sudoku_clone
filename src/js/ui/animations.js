@@ -197,8 +197,10 @@ export function animateCompletionWave(gridUI, callback) {
     const CELL_ANIM_DURATION = 400; // ms for each cell's animation
     let maxDelay = 0;
 
-    for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
+    const gridSize = gridUI._gridSize || 9;
+
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
             const cellEl = gridUI.getCell
                 ? gridUI.getCell(r, c)
                 : null;

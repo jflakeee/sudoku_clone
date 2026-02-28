@@ -2,20 +2,23 @@
  * Sudoku Input Validator
  *
  * Provides move validation, conflict detection, and cell-group helpers
- * for the game engine.
+ * for the game engine. Supports multiple board sizes.
  *
  * @module validator
  */
 
+import { getBlockSize } from './board-config.js';
+
 /**
  * Get all cell positions in the given row.
  *
- * @param {number} row - Row index (0-8)
- * @returns {{row: number, col: number}[]} Array of 9 cell positions
+ * @param {number} row - Row index
+ * @param {number} [boardSize=9] - Board dimension
+ * @returns {{row: number, col: number}[]} Array of cell positions
  */
-export function getRowCells(row) {
+export function getRowCells(row, boardSize = 9) {
     const cells = [];
-    for (let c = 0; c < 9; c++) {
+    for (let c = 0; c < boardSize; c++) {
         cells.push({ row, col: c });
     }
     return cells;
@@ -24,31 +27,36 @@ export function getRowCells(row) {
 /**
  * Get all cell positions in the given column.
  *
- * @param {number} col - Column index (0-8)
- * @returns {{row: number, col: number}[]} Array of 9 cell positions
+ * @param {number} col - Column index
+ * @param {number} [boardSize=9] - Board dimension
+ * @returns {{row: number, col: number}[]} Array of cell positions
  */
-export function getColCells(col) {
+export function getColCells(col, boardSize = 9) {
     const cells = [];
-    for (let r = 0; r < 9; r++) {
+    for (let r = 0; r < boardSize; r++) {
         cells.push({ row: r, col });
     }
     return cells;
 }
 
 /**
- * Get all cell positions in the 3x3 block that contains (row, col).
+ * Get all cell positions in the block that contains (row, col).
  *
- * @param {number} row - Row index (0-8)
- * @param {number} col - Column index (0-8)
- * @returns {{row: number, col: number}[]} Array of 9 cell positions
+ * @param {number} row - Row index
+ * @param {number} col - Column index
+ * @param {number} [boardSize=9] - Board dimension
+ * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
+ * @returns {{row: number, col: number}[]} Array of cell positions
  */
-export function getBlockCells(row, col) {
-    const cells = [];
-    const blockRow = Math.floor(row / 3) * 3;
-    const blockCol = Math.floor(col / 3) * 3;
+export function getBlockCells(row, col, boardSize = 9, blockSize = null) {
+    if (!blockSize) blockSize = getBlockSize(boardSize);
 
-    for (let r = blockRow; r < blockRow + 3; r++) {
-        for (let c = blockCol; c < blockCol + 3; c++) {
+    const cells = [];
+    const blockRow = Math.floor(row / blockSize.rows) * blockSize.rows;
+    const blockCol = Math.floor(col / blockSize.cols) * blockSize.cols;
+
+    for (let r = blockRow; r < blockRow + blockSize.rows; r++) {
+        for (let c = blockCol; c < blockCol + blockSize.cols; c++) {
             cells.push({ row: r, col: c });
         }
     }
@@ -58,19 +66,23 @@ export function getBlockCells(row, col) {
 
 /**
  * Find all cells that conflict with placing `num` at (row, col).
- * A conflict means another cell in the same row, column, or 3x3 block
+ * A conflict means another cell in the same row, column, or block
  * already contains the same number.
  *
  * The target cell itself is never included in the result.
  *
- * @param {number[][]} board - 9x9 Sudoku board (0 = empty)
- * @param {number} row - Row index (0-8)
- * @param {number} col - Column index (0-8)
- * @param {number} num - Number to check (1-9)
+ * @param {number[][]} board - Sudoku board (0 = empty)
+ * @param {number} row - Row index
+ * @param {number} col - Column index
+ * @param {number} num - Number to check
+ * @param {number} [boardSize=9] - Board dimension
+ * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {{row: number, col: number}[]} Array of conflicting cell positions
  */
-export function checkConflicts(board, row, col, num) {
-    if (num < 1 || num > 9) return [];
+export function checkConflicts(board, row, col, num, boardSize = 9, blockSize = null) {
+    if (!blockSize) blockSize = getBlockSize(boardSize);
+
+    if (num < 1 || num > boardSize) return [];
 
     const conflicts = [];
     const seen = new Set();
@@ -81,7 +93,7 @@ export function checkConflicts(board, row, col, num) {
      */
     const check = (r, c) => {
         if (r === row && c === col) return;
-        const key = r * 9 + c;
+        const key = r * boardSize + c;
         if (seen.has(key)) return;
         if (board[r][c] === num) {
             seen.add(key);
@@ -90,16 +102,16 @@ export function checkConflicts(board, row, col, num) {
     };
 
     // Row
-    for (let c = 0; c < 9; c++) check(row, c);
+    for (let c = 0; c < boardSize; c++) check(row, c);
 
     // Column
-    for (let r = 0; r < 9; r++) check(r, col);
+    for (let r = 0; r < boardSize; r++) check(r, col);
 
-    // 3x3 block
-    const blockRow = Math.floor(row / 3) * 3;
-    const blockCol = Math.floor(col / 3) * 3;
-    for (let r = blockRow; r < blockRow + 3; r++) {
-        for (let c = blockCol; c < blockCol + 3; c++) {
+    // Block
+    const blockRow = Math.floor(row / blockSize.rows) * blockSize.rows;
+    const blockCol = Math.floor(col / blockSize.cols) * blockSize.cols;
+    for (let r = blockRow; r < blockRow + blockSize.rows; r++) {
+        for (let c = blockCol; c < blockCol + blockSize.cols; c++) {
             check(r, c);
         }
     }
@@ -110,16 +122,16 @@ export function checkConflicts(board, row, col, num) {
 /**
  * Validate a player's move by comparing it to the known solution.
  *
- * @param {number[][]} board - Current 9x9 board state
- * @param {number[][]} solution - 9x9 complete solution
- * @param {number} row - Row index (0-8)
- * @param {number} col - Column index (0-8)
- * @param {number} num - Number the player entered (1-9)
- * @returns {{valid: boolean, complete: boolean}} Result object:
- *   - valid: true if num matches the solution at (row, col)
- *   - complete: true if the entire board is now correctly filled
+ * @param {number[][]} board - Current board state
+ * @param {number[][]} solution - Complete solution
+ * @param {number} row - Row index
+ * @param {number} col - Column index
+ * @param {number} num - Number the player entered
+ * @param {number} [boardSize=9] - Board dimension
+ * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
+ * @returns {{valid: boolean, complete: boolean}} Result object
  */
-export function validateMove(board, solution, row, col, num) {
+export function validateMove(board, solution, row, col, num, boardSize = 9, blockSize = null) {
     const valid = solution[row][col] === num;
 
     // If the move is valid, check whether it completes the board.
@@ -128,7 +140,7 @@ export function validateMove(board, solution, row, col, num) {
     if (valid) {
         const prev = board[row][col];
         board[row][col] = num;
-        complete = isBoardComplete(board, solution);
+        complete = isBoardComplete(board, solution, boardSize);
         board[row][col] = prev;
     }
 
@@ -138,13 +150,14 @@ export function validateMove(board, solution, row, col, num) {
 /**
  * Check whether every cell on the board matches the solution.
  *
- * @param {number[][]} board - Current 9x9 board state
- * @param {number[][]} solution - 9x9 complete solution
- * @returns {boolean} True if all 81 cells match the solution
+ * @param {number[][]} board - Current board state
+ * @param {number[][]} solution - Complete solution
+ * @param {number} [boardSize=9] - Board dimension
+ * @returns {boolean} True if all cells match the solution
  */
-export function isBoardComplete(board, solution) {
-    for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
+export function isBoardComplete(board, solution, boardSize = 9) {
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
             if (board[r][c] !== solution[r][c]) {
                 return false;
             }

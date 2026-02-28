@@ -56,6 +56,54 @@
     </div>
   </div>
 
+  <!-- ===== Mode Selection Screen ===== -->
+  <div id="screen-mode-select" class="screen">
+    <div class="sub-header">
+      <button class="icon-btn btn-back" data-action="back" aria-label="뒤로가기">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h2 class="sub-title">게임 모드</h2>
+      <div class="sub-header-right"></div>
+    </div>
+    <div class="mode-content">
+      <div class="mode-section">
+        <h3 class="mode-section-title">게임 모드</h3>
+        <div class="game-mode-options">
+          <button class="game-mode-option active" data-game-mode="classic">
+            <span class="mode-name">클래식</span>
+            <span class="mode-desc">무제한 시간</span>
+          </button>
+          <button class="game-mode-option" data-game-mode="timeAttack">
+            <span class="mode-name">타임어택</span>
+            <span class="mode-desc">제한 시간 도전</span>
+          </button>
+        </div>
+      </div>
+      <div class="mode-section timed-section" style="display:none;">
+        <h3 class="mode-section-title">제한 시간</h3>
+        <div class="time-duration-grid">
+          <button class="time-option" data-duration="300">5분</button>
+          <button class="time-option active" data-duration="600">10분</button>
+          <button class="time-option" data-duration="900">15분</button>
+          <button class="time-option" data-duration="1200">20분</button>
+        </div>
+      </div>
+      <div class="mode-section board-size-section">
+        <h3 class="mode-section-title">보드 크기</h3>
+        <div class="board-size-grid">
+          <button class="size-option" data-size="4">4×4</button>
+          <button class="size-option" data-size="6">6×6</button>
+          <button class="size-option active" data-size="9">9×9</button>
+          <button class="size-option" data-size="12">12×12</button>
+          <button class="size-option" data-size="16">16×16</button>
+        </div>
+      </div>
+    </div>
+    <div class="mode-actions">
+      <button class="btn btn-primary" data-action="select-mode">다음</button>
+    </div>
+  </div>
+
   <!-- ===== Game Play Screen ===== -->
   <div id="screen-game" class="screen">
     <div class="game-header">
@@ -99,6 +147,11 @@
     <div class="grid-container">
       <div class="sudoku-grid" id="sudoku-grid">
         <!-- 81 cells rendered by JS -->
+      </div>
+      <!-- Puzzle generation loading overlay (Phase E) -->
+      <div class="puzzle-loading" style="display:none;">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">퍼즐 생성 중...</p>
       </div>
     </div>
 
@@ -171,6 +224,8 @@
           <span class="stat-value complete-difficulty">쉬움</span>
         </div>
       </div>
+
+      <p class="complete-bonus" style="display:none;"></p>
 
       <div class="complete-high-scores">
         <h3>최고 점수</h3>

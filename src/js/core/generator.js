@@ -5,18 +5,21 @@
  * requested difficulty level.
  *
  * Algorithm:
- *   1. Build a complete, valid 9x9 board via backtracking with randomisation.
+ *   1. Build a complete, valid board via backtracking with randomisation.
  *   2. Remove cells one at a time (in random order), verifying after each
  *      removal that the puzzle still has exactly one solution.
  *   3. Stop removing when the target number of empty cells is reached.
+ *
+ * Supports multiple board sizes (4x4, 6x6, 9x9, 12x12, 16x16).
  *
  * @module generator
  */
 
 import { isValid, countSolutions } from './solver.js';
+import { getBlockSize, getDifficultyRange } from './board-config.js';
 
 /**
- * Difficulty presets.
+ * Difficulty presets (9x9 fallback).
  * Each entry defines the [min, max] number of cells to remove (make empty).
  *
  * @type {Record<string, [number, number]>}
@@ -56,40 +59,46 @@ function shuffle(arr) {
 }
 
 /**
- * Create an empty 9x9 board (all zeros).
+ * Create an empty board (all zeros).
  *
+ * @param {number} [boardSize=9] - Board dimension
  * @returns {number[][]}
  */
-function createEmptyBoard() {
-    return Array.from({ length: 9 }, () => Array(9).fill(0));
+function createEmptyBoard(boardSize = 9) {
+    return Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
 }
 
 /**
- * Generate a complete, valid 9x9 Sudoku board using backtracking with
+ * Generate a complete, valid Sudoku board using backtracking with
  * randomised candidate ordering so that each call produces a different board.
  *
+ * @param {number} [boardSize=9] - Board dimension
+ * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {number[][]} A fully filled valid board
  */
-function generateCompleteBoard() {
-    const board = createEmptyBoard();
+function generateCompleteBoard(boardSize = 9, blockSize = null) {
+    if (!blockSize) blockSize = getBlockSize(boardSize);
+
+    const board = createEmptyBoard(boardSize);
+    const totalCells = boardSize * boardSize;
 
     /**
      * Recursively fill the board cell by cell (left-to-right, top-to-bottom).
      *
-     * @param {number} pos - Linear position 0..80
+     * @param {number} pos - Linear position
      * @returns {boolean}
      */
     function fill(pos) {
-        if (pos === 81) return true;
+        if (pos === totalCells) return true;
 
-        const row = Math.floor(pos / 9);
-        const col = pos % 9;
+        const row = Math.floor(pos / boardSize);
+        const col = pos % boardSize;
 
-        // Try digits 1-9 in random order
-        const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        // Try digits 1..boardSize in random order
+        const nums = shuffle(Array.from({ length: boardSize }, (_, i) => i + 1));
 
         for (const num of nums) {
-            if (isValid(board, row, col, num)) {
+            if (isValid(board, row, col, num, boardSize, blockSize)) {
                 board[row][col] = num;
                 if (fill(pos + 1)) return true;
                 board[row][col] = 0;
@@ -107,17 +116,23 @@ function generateCompleteBoard() {
  * Remove cells from a complete board to create a puzzle, ensuring that
  * the puzzle retains a unique solution after each removal.
  *
- * @param {number[][]} board - Complete 9x9 board (will be mutated)
+ * @param {number[][]} board - Complete board (will be mutated)
  * @param {number} cellsToRemove - Target number of cells to blank out
+ * @param {number} [boardSize=9] - Board dimension
+ * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {number} Actual number of cells removed (may be less than target
  *                   if uniqueness can't be maintained)
  */
-function removeCells(board, cellsToRemove) {
-    // Build a list of all 81 positions and shuffle them
+function removeCells(board, cellsToRemove, boardSize = 9, blockSize = null) {
+    if (!blockSize) blockSize = getBlockSize(boardSize);
+
+    const totalCells = boardSize * boardSize;
+
+    // Build a list of all positions and shuffle them
     const positions = shuffle(
-        Array.from({ length: 81 }, (_, i) => ({
-            row: Math.floor(i / 9),
-            col: i % 9,
+        Array.from({ length: totalCells }, (_, i) => ({
+            row: Math.floor(i / boardSize),
+            col: i % boardSize,
         }))
     );
 
@@ -132,7 +147,7 @@ function removeCells(board, cellsToRemove) {
         board[row][col] = 0;
 
         // Verify that the puzzle still has exactly one solution
-        if (countSolutions(board, 2) !== 1) {
+        if (countSolutions(board, boardSize, blockSize, 2) !== 1) {
             // Removal would create multiple solutions — put it back
             board[row][col] = backup;
             continue;
@@ -148,20 +163,27 @@ function removeCells(board, cellsToRemove) {
  * Generate a Sudoku puzzle at the given difficulty level.
  *
  * @param {string} difficulty - One of 'easy', 'normal', 'hard', 'expert', 'master'
+ * @param {number} [boardSize=9] - Board dimension
+ * @param {string} [dailyDate=null] - Reserved for future daily-challenge seeding
  * @returns {{
  *   board: number[][],
  *   solution: number[][],
  *   given: boolean[][],
  *   difficulty: string
- * }} Puzzle data:
- *   - board: 9x9 array with 0s for empty cells the player must fill
- *   - solution: 9x9 complete solution
- *   - given: 9x9 boolean array (true = pre-filled / immutable cell)
- *   - difficulty: the difficulty string passed in
+ * }} Puzzle data
  * @throws {Error} If an invalid difficulty string is provided
  */
-export function generatePuzzle(difficulty) {
-    const range = DIFFICULTY_RANGES[difficulty];
+export function generatePuzzle(difficulty, boardSize = 9, dailyDate = null) {
+    const blockSize = getBlockSize(boardSize);
+
+    // Get range from centralized config; fall back to local 9x9 ranges
+    let range;
+    try {
+        range = getDifficultyRange(boardSize, difficulty);
+    } catch {
+        range = DIFFICULTY_RANGES[difficulty];
+    }
+
     if (!range) {
         throw new Error(
             `Invalid difficulty "${difficulty}". ` +
@@ -173,11 +195,11 @@ export function generatePuzzle(difficulty) {
     const cellsToRemove = randomInt(minRemove, maxRemove);
 
     // 1. Generate a full valid board
-    const solution = generateCompleteBoard();
+    const solution = generateCompleteBoard(boardSize, blockSize);
 
     // 2. Deep-copy for the player board, then remove cells
     const board = solution.map(row => [...row]);
-    removeCells(board, cellsToRemove);
+    removeCells(board, cellsToRemove, boardSize, blockSize);
 
     // 3. Build the "given" mask
     const given = board.map(row => row.map(cell => cell !== 0));

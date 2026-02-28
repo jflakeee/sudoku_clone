@@ -39,7 +39,11 @@ export class HighlightUI {
      * @param {import('./grid.js').GridUI | HTMLElement} gridUIOrEl - Grid
      *   renderer or the `.sudoku-grid` DOM element.
      */
-    constructor(gridUIOrEl) {
+    /**
+     * @param {import('./grid.js').GridUI | HTMLElement} gridUIOrEl
+     * @param {number} [gridSize=9] - Board dimension.
+     */
+    constructor(gridUIOrEl, gridSize = 9) {
         if (gridUIOrEl && typeof gridUIOrEl.getCell === 'function') {
             /** @type {import('./grid.js').GridUI} */
             this._gridUI = gridUIOrEl;
@@ -49,6 +53,9 @@ export class HighlightUI {
             /** @type {HTMLElement} */
             this._container = /** @type {HTMLElement} */ (gridUIOrEl);
         }
+
+        /** @type {number} */
+        this._gridSize = gridSize;
     }
 
     // -----------------------------------------------------------------------
@@ -78,15 +85,15 @@ export class HighlightUI {
 
         // 3. Highlighted: same row, column, and block
         const relatedCells = [
-            ...getRowCells(row),
-            ...getColCells(col),
-            ...getBlockCells(row, col),
+            ...getRowCells(row, this._gridSize),
+            ...getColCells(col, this._gridSize),
+            ...getBlockCells(row, col, this._gridSize),
         ];
 
         // De-duplicate using a position key set
         const seen = new Set();
         for (const pos of relatedCells) {
-            const key = pos.row * 9 + pos.col;
+            const key = pos.row * this._gridSize + pos.col;
             if (seen.has(key)) continue;
             seen.add(key);
 
@@ -102,8 +109,8 @@ export class HighlightUI {
         // 4. Same number
         const selectedValue = board[row][col];
         if (selectedValue !== 0) {
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
+            for (let r = 0; r < this._gridSize; r++) {
+                for (let c = 0; c < this._gridSize; c++) {
                     if (board[r][c] === selectedValue) {
                         const cellEl = this._getCell(r, c);
                         if (cellEl) {
@@ -119,8 +126,8 @@ export class HighlightUI {
      * Remove all highlight-related classes from every cell on the grid.
      */
     clearAll() {
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
+        for (let r = 0; r < this._gridSize; r++) {
+            for (let c = 0; c < this._gridSize; c++) {
                 const cellEl = this._getCell(r, c);
                 if (cellEl) {
                     cellEl.classList.remove(CLS_SELECTED, CLS_HIGHLIGHTED, CLS_SAME_NUMBER);

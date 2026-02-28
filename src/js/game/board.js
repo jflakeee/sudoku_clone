@@ -6,12 +6,15 @@
  * game data flow through this class so that a single serialisable snapshot
  * can be saved/restored at any time.
  *
+ * Supports multiple board sizes (4x4, 6x6, 9x9, 12x12, 16x16).
+ *
  * @module game/board
  */
 
 import { generatePuzzle } from '../core/generator.js';
 import { validateMove, isBoardComplete, checkConflicts } from '../core/validator.js';
 import { calculateCellScore, calculateCompletionBonus } from '../core/scorer.js';
+import { getBlockSize } from '../core/board-config.js';
 import { Notes } from './notes.js';
 import { History } from './history.js';
 import { Timer } from './timer.js';
@@ -50,17 +53,23 @@ export class Board {
      * populate it with actual puzzle data.
      */
     constructor() {
-        /** @type {number[][]} 9x9 current player board (0 = empty). */
-        this._board = Board._emptyGrid();
+        /** @type {number} Board dimension. */
+        this.boardSize = 9;
 
-        /** @type {number[][]} 9x9 complete solution. */
-        this._solution = Board._emptyGrid();
+        /** @type {{rows: number, cols: number}} Block dimensions. */
+        this.blockSize = getBlockSize(9);
 
-        /** @type {boolean[][]} 9x9 – true for pre-filled (immutable) cells. */
-        this._given = Board._emptyBoolGrid();
+        /** @type {number[][]} Current player board (0 = empty). */
+        this._board = Board._emptyGrid(this.boardSize);
+
+        /** @type {number[][]} Complete solution. */
+        this._solution = Board._emptyGrid(this.boardSize);
+
+        /** @type {boolean[][]} True for pre-filled (immutable) cells. */
+        this._given = Board._emptyBoolGrid(this.boardSize);
 
         /** @type {Notes} Pencil-mark manager. */
-        this.notes = new Notes();
+        this.notes = new Notes(this.boardSize, this.blockSize);
 
         /** @type {History} Undo stack. */
         this.history = new History();
@@ -85,6 +94,9 @@ export class Board {
 
         /** @type {boolean} Whether the game is over (complete or failed). */
         this._gameOver = false;
+
+        /** @type {string} Game mode ('classic', 'timeAttack', etc.). */
+        this.mode = 'classic';
     }
 
     // -----------------------------------------------------------------------
@@ -97,8 +109,16 @@ export class Board {
      * @param {string} difficulty - One of 'easy', 'normal', 'hard', 'expert', 'master'.
      * @param {string} [dailyDate] - Optional ISO date string (e.g. '2026-02-26')
      *   to generate the deterministic daily puzzle for that date.
+     * @param {string} [mode='classic'] - Game mode ('classic', 'timeAttack', etc.).
+     * @param {object} [options={}] - Additional mode-specific options.
      */
-    newGame(difficulty, dailyDate) {
+    newGame(difficulty, dailyDate, mode = 'classic', options = {}) {
+        // Update board size if specified
+        if (options.boardSize) {
+            this.boardSize = options.boardSize;
+            this.blockSize = getBlockSize(this.boardSize);
+        }
+
         // Generate the puzzle ---------------------------------------------------
         // For daily challenges we seed Math.random via a temporary override so
         // that the generator produces the same board for every player on a given
@@ -113,12 +133,12 @@ export class Board {
             const origRandom = Math.random;
             Math.random = rng;
             try {
-                puzzle = generatePuzzle(difficulty);
+                puzzle = generatePuzzle(difficulty, this.boardSize);
             } finally {
                 Math.random = origRandom;
             }
         } else {
-            puzzle = generatePuzzle(difficulty);
+            puzzle = generatePuzzle(difficulty, this.boardSize);
         }
 
         // Reset state -----------------------------------------------------------
@@ -131,8 +151,9 @@ export class Board {
         this._hints = DEFAULT_HINTS;
         this._dailyDate = dailyDate || null;
         this._gameOver = false;
+        this.mode = mode;
 
-        this.notes = new Notes();
+        this.notes = new Notes(this.boardSize, this.blockSize);
         this.history = new History();
         this.timer.reset();
         this.timer.start();
@@ -146,18 +167,22 @@ export class Board {
     loadState(savedState) {
         if (!savedState) return;
 
-        this._board = savedState.board || Board._emptyGrid();
-        this._solution = savedState.solution || Board._emptyGrid();
-        this._given = savedState.given || Board._emptyBoolGrid();
+        this.boardSize = savedState.boardSize || 9;
+        this.blockSize = getBlockSize(this.boardSize);
+
+        this._board = savedState.board || Board._emptyGrid(this.boardSize);
+        this._solution = savedState.solution || Board._emptyGrid(this.boardSize);
+        this._given = savedState.given || Board._emptyBoolGrid(this.boardSize);
         this._difficulty = savedState.difficulty || 'easy';
         this._score = savedState.score || 0;
         this._mistakes = savedState.mistakes || 0;
         this._hints = typeof savedState.hints === 'number' ? savedState.hints : DEFAULT_HINTS;
         this._dailyDate = savedState.dailyDate || null;
         this._gameOver = savedState.gameOver || false;
+        this.mode = savedState.mode || 'classic';
 
         // Notes
-        this.notes = new Notes();
+        this.notes = new Notes(this.boardSize, this.blockSize);
         if (savedState.notes) {
             this.notes.fromJSON(savedState.notes);
         }
@@ -196,6 +221,8 @@ export class Board {
             history: this.history.toJSON(),
             dailyDate: this._dailyDate,
             gameOver: this._gameOver,
+            mode: this.mode,
+            boardSize: this.boardSize,
         };
     }
 
@@ -206,9 +233,9 @@ export class Board {
     /**
      * Get the current value of a cell.
      *
-     * @param {number} row - Row index (0-8).
-     * @param {number} col - Column index (0-8).
-     * @returns {number} 1-9 if filled, 0 if empty.
+     * @param {number} row - Row index.
+     * @param {number} col - Column index.
+     * @returns {number} 1-N if filled, 0 if empty.
      */
     getCellValue(row, col) {
         return this._board[row][col];
@@ -226,7 +253,7 @@ export class Board {
      *
      * @param {number} row
      * @param {number} col
-     * @param {number} num - Digit 1-9.
+     * @param {number} num - Digit 1-N.
      * @returns {{
      *   valid: boolean,
      *   complete: boolean,
@@ -266,11 +293,15 @@ export class Board {
 
         // Validate against solution
         const { valid, complete } = validateMove(
-            this._board, this._solution, row, col, num
+            this._board, this._solution, row, col, num,
+            this.boardSize, this.blockSize
         );
 
         // Get conflicts for visual feedback
-        const conflicts = checkConflicts(this._board, row, col, num);
+        const conflicts = checkConflicts(
+            this._board, row, col, num,
+            this.boardSize, this.blockSize
+        );
 
         let score = 0;
 
@@ -405,7 +436,7 @@ export class Board {
      * @returns {boolean}
      */
     isComplete() {
-        return isBoardComplete(this._board, this._solution);
+        return isBoardComplete(this._board, this._solution, this.boardSize);
     }
 
     /**
@@ -436,7 +467,7 @@ export class Board {
     }
 
     /**
-     * Raw 9x9 board array. Returns the internal reference for read-only use.
+     * Raw board array. Returns the internal reference for read-only use.
      *
      * @returns {number[][]}
      */
@@ -445,7 +476,7 @@ export class Board {
     }
 
     /**
-     * Full 9x9 solution array.
+     * Full solution array.
      *
      * @returns {number[][]}
      */
@@ -454,7 +485,7 @@ export class Board {
     }
 
     /**
-     * 9x9 given-flag array.
+     * Given-flag array.
      *
      * @returns {boolean[][]}
      */
@@ -464,15 +495,15 @@ export class Board {
 
     /**
      * Count how many times a specific digit appears on the current board.
-     * Used by the number-pad to fade out completed digits (count >= 9).
+     * Used by the number-pad to fade out completed digits.
      *
-     * @param {number} num - Digit 1-9.
+     * @param {number} num - Digit.
      * @returns {number}
      */
     getNumberCount(num) {
         let count = 0;
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
+        for (let r = 0; r < this.boardSize; r++) {
+            for (let c = 0; c < this.boardSize; c++) {
                 if (this._board[r][c] === num) count++;
             }
         }
@@ -510,6 +541,62 @@ export class Board {
     }
 
     // -----------------------------------------------------------------------
+    // Async game generation (Web Worker for large boards)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Generate a puzzle asynchronously using a Web Worker.
+     * Used for large board sizes (12x12, 16x16) to prevent UI blocking.
+     *
+     * @param {string} difficulty - One of 'easy', 'normal', 'hard', 'expert', 'master'.
+     * @param {string} [dailyDate] - Optional ISO date string for daily challenge.
+     * @param {string} [mode='classic'] - Game mode.
+     * @param {object} [options={}] - Additional options.
+     * @returns {Promise<void>}
+     */
+    async newGameAsync(difficulty, dailyDate, mode = 'classic', options = {}) {
+        if (options.boardSize) {
+            this.boardSize = options.boardSize;
+            this.blockSize = getBlockSize(this.boardSize);
+        }
+
+        return new Promise((resolve, reject) => {
+            const worker = new Worker('./js/core/puzzle-worker.js');
+
+            worker.onmessage = (e) => {
+                worker.terminate();
+                if (e.data.success) {
+                    const puzzle = e.data.puzzle;
+                    this._board = puzzle.board;
+                    this._solution = puzzle.solution;
+                    this._given = puzzle.given;
+                    this._difficulty = puzzle.difficulty;
+                    this._score = 0;
+                    this._mistakes = 0;
+                    this._hints = DEFAULT_HINTS;
+                    this._dailyDate = dailyDate || null;
+                    this._gameOver = false;
+                    this.mode = mode;
+                    this.notes = new Notes(this.boardSize, this.blockSize);
+                    this.history = new History();
+                    this.timer.reset();
+                    this.timer.start();
+                    resolve();
+                } else {
+                    reject(new Error(e.data.error));
+                }
+            };
+
+            worker.onerror = (err) => {
+                worker.terminate();
+                reject(err);
+            };
+
+            worker.postMessage({ difficulty, boardSize: this.boardSize });
+        });
+    }
+
+    // -----------------------------------------------------------------------
     // Serialisation alias (used by app.js auto-save)
     // -----------------------------------------------------------------------
 
@@ -528,22 +615,24 @@ export class Board {
     // -----------------------------------------------------------------------
 
     /**
-     * Create an empty 9x9 number grid.
+     * Create an empty number grid.
      *
+     * @param {number} [boardSize=9] - Board dimension
      * @returns {number[][]}
      * @private
      */
-    static _emptyGrid() {
-        return Array.from({ length: 9 }, () => Array(9).fill(0));
+    static _emptyGrid(boardSize = 9) {
+        return Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
     }
 
     /**
-     * Create a 9x9 grid of `false`.
+     * Create a grid of `false`.
      *
+     * @param {number} [boardSize=9] - Board dimension
      * @returns {boolean[][]}
      * @private
      */
-    static _emptyBoolGrid() {
-        return Array.from({ length: 9 }, () => Array(9).fill(false));
+    static _emptyBoolGrid(boardSize = 9) {
+        return Array.from({ length: boardSize }, () => Array(boardSize).fill(false));
     }
 }

@@ -68,12 +68,12 @@ export function initMainScreen(app) {
         });
     }
 
-    // --- New game button (opens difficulty modal) ---
+    // --- New game button (opens mode-select screen) ---
     if (btnNewGame) {
         btnNewGame.addEventListener('click', (e) => {
             // Prevent the global data-action handler from also firing
             e.stopPropagation();
-            app.showDifficultyModal();
+            app.navigate('mode-select');
         });
     }
 

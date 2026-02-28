@@ -1,24 +1,15 @@
 /**
  * Grid UI – DOM Renderer
  *
- * Creates and manages the 81 cell elements inside the Sudoku grid container.
+ * Creates and manages the cell elements inside the Sudoku grid container.
+ * Supports dynamic board sizes (4, 6, 9, 12, 16).
  * All cell interactions use a single event-delegated listener on the grid for
  * optimal performance.
  *
- * Cell DOM structure (per cell):
- * ```html
- * <div class="cell" data-row="0" data-col="0">
- *   <span class="cell-value"></span>
- *   <div class="cell-notes">
- *     <span class="note note-1"></span>
- *     ...
- *     <span class="note note-9"></span>
- *   </div>
- * </div>
- * ```
- *
  * @module ui/grid
  */
+
+import { getBlockSize } from '../core/board-config.js';
 
 // ---------------------------------------------------------------------------
 // GridUI class
@@ -30,13 +21,20 @@
 export class GridUI {
     /**
      * @param {HTMLElement} containerEl - The `.sudoku-grid` container element.
+     * @param {number} [gridSize=9] - Board dimension (4, 6, 9, 12, 16).
      */
-    constructor(containerEl) {
+    constructor(containerEl, gridSize = 9) {
         /** @type {HTMLElement} */
         this._container = containerEl;
 
+        /** @type {number} */
+        this._gridSize = gridSize;
+
+        /** @type {{ rows: number, cols: number }} */
+        this._blockSize = getBlockSize(gridSize);
+
         /**
-         * Flat lookup: cells[row * 9 + col] → cell element.
+         * Flat lookup: cells[row * gridSize + col] → cell element.
          * @type {HTMLElement[]}
          */
         this._cells = [];
@@ -55,8 +53,8 @@ export class GridUI {
      * @param {boolean[][]} given - 9x9 given flags.
      */
     renderBoard(board, given) {
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
+        for (let r = 0; r < this._gridSize; r++) {
+            for (let c = 0; c < this._gridSize; c++) {
                 const value = board[r][c];
                 const state = given[r][c] ? 'given' : (value !== 0 ? 'user-input' : '');
                 this.updateCell(r, c, value, state);
@@ -119,7 +117,7 @@ export class GridUI {
         valueEl.style.display = 'none';
         notesEl.style.display = '';
 
-        for (let n = 1; n <= 9; n++) {
+        for (let n = 1; n <= this._gridSize; n++) {
             const noteSpan = notesEl.querySelector(`.note-${n}`);
             if (noteSpan) {
                 noteSpan.textContent = noteSet.has(n) ? String(n) : '';
@@ -146,7 +144,7 @@ export class GridUI {
      * @returns {HTMLElement|null}
      */
     getCell(row, col) {
-        return this._cells[row * 9 + col] || null;
+        return this._cells[row * this._gridSize + col] || null;
     }
 
     // -----------------------------------------------------------------------
@@ -180,12 +178,12 @@ export class GridUI {
      * @param {Function} [callback] - Called after the wave finishes.
      */
     animateWave(callback) {
-        const totalCells = 81;
+        const totalCells = this._gridSize * this._gridSize;
         const delayPerCell = 30; // ms
         let finished = 0;
 
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
+        for (let r = 0; r < this._gridSize; r++) {
+            for (let c = 0; c < this._gridSize; c++) {
                 const cell = this.getCell(r, c);
                 if (!cell) {
                     finished++;
@@ -292,28 +290,38 @@ export class GridUI {
         this._container.innerHTML = '';
         this._cells = [];
 
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
+        // Set dynamic grid template
+        this._container.style.gridTemplateColumns = `repeat(${this._gridSize}, 1fr)`;
+        this._container.style.gridTemplateRows = `repeat(${this._gridSize}, 1fr)`;
+
+        for (let r = 0; r < this._gridSize; r++) {
+            for (let c = 0; c < this._gridSize; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.setAttribute('data-row', String(r));
                 cell.setAttribute('data-col', String(c));
 
                 // Add block-boundary classes for thicker CSS borders
-                if (c % 3 === 0 && c !== 0) cell.classList.add('block-left');
-                if (r % 3 === 0 && r !== 0) cell.classList.add('block-top');
+                if (c % this._blockSize.cols === 0 && c !== 0) cell.classList.add('block-left');
+                if (r % this._blockSize.rows === 0 && r !== 0) cell.classList.add('block-top');
+
+                // Last row/col classes for border removal
+                if (c === this._gridSize - 1) cell.classList.add('last-col');
+                if (r === this._gridSize - 1) cell.classList.add('last-row');
 
                 // Value element
                 const valueSpan = document.createElement('span');
                 valueSpan.className = 'cell-value';
                 cell.appendChild(valueSpan);
 
-                // Notes container (3x3 mini-grid)
+                // Notes container (dynamic mini-grid)
                 const notesDiv = document.createElement('div');
                 notesDiv.className = 'cell-notes';
                 notesDiv.style.display = 'none';
+                notesDiv.style.gridTemplateColumns = `repeat(${this._blockSize.cols}, 1fr)`;
+                notesDiv.style.gridTemplateRows = `repeat(${this._blockSize.rows}, 1fr)`;
 
-                for (let n = 1; n <= 9; n++) {
+                for (let n = 1; n <= this._gridSize; n++) {
                     const noteSpan = document.createElement('span');
                     noteSpan.className = `note note-${n}`;
                     notesDiv.appendChild(noteSpan);
@@ -340,10 +348,23 @@ export class GridUI {
         const notesEl = cell.querySelector('.cell-notes');
         if (notesEl) {
             notesEl.style.display = 'none';
-            for (let n = 1; n <= 9; n++) {
+            for (let n = 1; n <= this._gridSize; n++) {
                 const noteSpan = notesEl.querySelector(`.note-${n}`);
                 if (noteSpan) noteSpan.textContent = '';
             }
         }
+    }
+
+    /**
+     * Rebuild the grid for a new board size.
+     *
+     * @param {number} gridSize - New board dimension (4, 6, 9, 12, 16).
+     */
+    rebuild(gridSize) {
+        this._gridSize = gridSize;
+        this._blockSize = getBlockSize(gridSize);
+        this._container.innerHTML = '';
+        this._cells = [];
+        this._buildGrid();
     }
 }

@@ -23,16 +23,20 @@
 export class NumberpadUI {
     /**
      * @param {HTMLElement} containerEl - The `#numberpad` container element.
+     * @param {number} [maxNumber=9] - Maximum digit (matches board size).
      */
-    constructor(containerEl) {
+    constructor(containerEl, maxNumber = 9) {
         /** @type {HTMLElement} */
         this._container = containerEl;
 
-        /** @type {HTMLElement[]} Buttons indexed 0-8 for digits 1-9. */
+        /** @type {number} */
+        this._maxNumber = maxNumber;
+
+        /** @type {HTMLElement[]} Buttons indexed 0-(maxNumber-1). */
         this._buttons = [];
 
         // Cache button references
-        for (let n = 1; n <= 9; n++) {
+        for (let n = 1; n <= this._maxNumber; n++) {
             const btn = this._container.querySelector(`.num-btn[data-number="${n}"]`);
             this._buttons.push(btn);
         }
@@ -50,13 +54,13 @@ export class NumberpadUI {
      * @param {import('../game/board.js').Board} board - Current game board.
      */
     updateCounts(board) {
-        for (let n = 1; n <= 9; n++) {
+        for (let n = 1; n <= this._maxNumber; n++) {
             const btn = this._buttons[n - 1];
             if (!btn) continue;
 
             const count = board.getNumberCount(n);
 
-            if (count >= 9) {
+            if (count >= this._maxNumber) {
                 btn.classList.add('completed');
             } else {
                 btn.classList.remove('completed');
@@ -79,7 +83,7 @@ export class NumberpadUI {
             if (btn.classList.contains('completed')) return;
 
             const num = parseInt(btn.getAttribute('data-number'), 10);
-            if (num >= 1 && num <= 9) {
+            if (num >= 1 && num <= this._maxNumber) {
                 callback(num);
             }
         });
@@ -94,7 +98,7 @@ export class NumberpadUI {
     highlightNumber(num) {
         this.clearHighlight();
 
-        if (num >= 1 && num <= 9) {
+        if (num >= 1 && num <= this._maxNumber) {
             const btn = this._buttons[num - 1];
             if (btn) {
                 btn.classList.add('active');
@@ -120,7 +124,7 @@ export class NumberpadUI {
      */
     lockNumber(num) {
         this.unlockNumber();
-        if (num >= 1 && num <= 9) {
+        if (num >= 1 && num <= this._maxNumber) {
             const btn = this._buttons[num - 1];
             if (btn) {
                 btn.classList.add('locked');
@@ -136,6 +140,26 @@ export class NumberpadUI {
             if (btn) {
                 btn.classList.remove('locked');
             }
+        }
+    }
+
+    /**
+     * Rebuild the number pad for a new board size.
+     *
+     * @param {number} maxNumber - New maximum digit.
+     */
+    rebuild(maxNumber) {
+        this._maxNumber = maxNumber;
+        this._container.innerHTML = '';
+        this._buttons = [];
+
+        for (let n = 1; n <= maxNumber; n++) {
+            const btn = document.createElement('button');
+            btn.className = 'num-btn';
+            btn.setAttribute('data-number', String(n));
+            btn.textContent = String(n);
+            this._container.appendChild(btn);
+            this._buttons.push(btn);
         }
     }
 }
