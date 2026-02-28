@@ -19,7 +19,10 @@ const KEYS = {
     STATS: 'sudoku_stats',
     SETTINGS: 'sudoku_settings',
     DAILY_CHALLENGE: 'sudoku_dailyChallenge',
+    GAME_HISTORY: 'sudoku_gameHistory',
 };
+
+const MAX_HISTORY_ENTRIES = 200;
 
 // ---------------------------------------------------------------------------
 // Difficulties used for per-difficulty stat initialisation
@@ -331,7 +334,7 @@ export function checkAndResetHighScores(hs) {
 // Data migration
 // ---------------------------------------------------------------------------
 
-const CURRENT_STORAGE_VERSION = 1;
+const CURRENT_STORAGE_VERSION = 2;
 
 /**
  * Run any needed data migrations on localStorage.
@@ -353,6 +356,13 @@ export function migrateStorageIfNeeded() {
             if (!game.mode) { game.mode = 'classic'; changed = true; }
             if (!game.boardSize) { game.boardSize = 9; changed = true; }
             if (changed) writeJSON(KEYS.CURRENT_GAME, game);
+        }
+    }
+
+    // --- Migration v1 → v2: initialise gameHistory key ---
+    if (storedVersion < 2) {
+        if (readJSON(KEYS.GAME_HISTORY) === null) {
+            writeJSON(KEYS.GAME_HISTORY, []);
         }
     }
 
@@ -390,4 +400,51 @@ export function loadDailyChallenge() {
         completed: Array.isArray(stored.completed) ? stored.completed : [],
         streak: typeof stored.streak === 'number' ? stored.streak : 0,
     };
+}
+
+// ---------------------------------------------------------------------------
+// Game history archive
+// ---------------------------------------------------------------------------
+
+/**
+ * Save a completed game entry to the history archive.
+ * Entries are capped at MAX_HISTORY_ENTRIES (oldest entries are pruned).
+ *
+ * @param {object} entry - Game history entry with id, puzzle, solution, etc.
+ */
+export function saveGameHistory(entry) {
+    const history = loadGameHistory();
+    history.unshift(entry);
+    if (history.length > MAX_HISTORY_ENTRIES) {
+        history.length = MAX_HISTORY_ENTRIES;
+    }
+    writeJSON(KEYS.GAME_HISTORY, history);
+}
+
+/**
+ * Load the full game history array.
+ *
+ * @returns {object[]}
+ */
+export function loadGameHistory() {
+    const stored = readJSON(KEYS.GAME_HISTORY);
+    return Array.isArray(stored) ? stored : [];
+}
+
+/**
+ * Find a specific game history entry by its id.
+ *
+ * @param {string} id - Entry id.
+ * @returns {object | null}
+ */
+export function getGameHistoryById(id) {
+    const history = loadGameHistory();
+    return history.find(e => e.id === id) || null;
+}
+
+/**
+ * Clear all game history.
+ */
+export function clearGameHistory() {
+    writeJSON(KEYS.GAME_HISTORY, []);
 }

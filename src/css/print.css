@@ -1,0 +1,214 @@
+/* ============================================
+   print.css - Print Mode Styles
+   Screen preview + @media print
+   ============================================ */
+
+/* ===========================
+   Print Screen (on-screen preview)
+   =========================== */
+
+.print-options {
+  padding: var(--spacing-md) var(--spacing-lg);
+  flex-shrink: 0;
+}
+
+.print-layout-select {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.print-layout-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: 2px solid var(--cell-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.print-layout-btn.active {
+  border-color: var(--primary);
+  background: rgba(41, 121, 255, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.print-preview {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  justify-content: center;
+  align-content: flex-start;
+}
+
+.print-preview.layout-single .print-grid-wrapper {
+  width: 100%;
+  max-width: 400px;
+}
+
+.print-preview.layout-quad .print-grid-wrapper {
+  width: calc(50% - var(--spacing-sm));
+  max-width: 240px;
+}
+
+.print-actions {
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xl);
+  flex-shrink: 0;
+}
+
+.print-actions .btn-primary {
+  width: 100%;
+}
+
+/* ===========================
+   Print Grid (shared by preview and print)
+   =========================== */
+
+.print-grid-wrapper {
+  margin: 0 auto;
+}
+
+.print-grid-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.print-grid {
+  width: 100%;
+  border-collapse: collapse;
+  border: 2px solid #333;
+  aspect-ratio: 1 / 1;
+  table-layout: fixed;
+}
+
+.print-cell {
+  border: 1px solid #999;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 1rem;
+  font-weight: 400;
+  padding: 0;
+}
+
+.print-cell.given {
+  font-weight: 700;
+  color: #222;
+}
+
+.print-cell.block-left {
+  border-left: 2px solid #333;
+}
+
+.print-cell.block-top {
+  border-top: 2px solid #333;
+}
+
+/* Size-specific font adjustments */
+.print-grid[data-size="4"] .print-cell { font-size: 1.4rem; }
+.print-grid[data-size="6"] .print-cell { font-size: 1.2rem; }
+.print-grid[data-size="12"] .print-cell { font-size: 0.7rem; }
+.print-grid[data-size="16"] .print-cell { font-size: 0.55rem; }
+
+
+/* ===========================
+   @media print - A4 print styles
+   =========================== */
+
+@media print {
+  /* Hide everything except print preview */
+  body > * {
+    display: none !important;
+  }
+
+  #app {
+    display: block !important;
+  }
+
+  #app > * {
+    display: none !important;
+  }
+
+  #screen-print {
+    display: flex !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide screen-only elements */
+  .sub-header,
+  .print-options,
+  .print-actions,
+  #navbar {
+    display: none !important;
+  }
+
+  .print-preview {
+    display: flex !important;
+    flex-wrap: wrap;
+    padding: 0;
+    overflow: visible !important;
+    width: 100%;
+    justify-content: center;
+    gap: 10mm;
+  }
+
+  /* Single layout: one large grid centered */
+  .print-preview.layout-single .print-grid-wrapper {
+    width: 170mm;
+    max-width: 170mm;
+    margin: 10mm auto;
+  }
+
+  /* Quad layout: 4 grids in 2x2 */
+  .print-preview.layout-quad .print-grid-wrapper {
+    width: 85mm;
+    max-width: 85mm;
+    page-break-inside: avoid;
+  }
+
+  .print-grid {
+    border: 2px solid #000;
+  }
+
+  .print-cell {
+    border: 1px solid #666;
+    color: #000;
+  }
+
+  .print-cell.given {
+    font-weight: 700;
+    color: #000;
+  }
+
+  .print-cell.block-left {
+    border-left: 2px solid #000;
+  }
+
+  .print-cell.block-top {
+    border-top: 2px solid #000;
+  }
+
+  .print-grid-header {
+    color: #000;
+    font-size: 10pt;
+    margin-bottom: 3mm;
+  }
+
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+}

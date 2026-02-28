@@ -97,6 +97,9 @@ export class Board {
 
         /** @type {string} Game mode ('classic', 'timeAttack', etc.). */
         this.mode = 'classic';
+
+        /** @type {number[][]|null} Snapshot of the initial puzzle (before player input). */
+        this._initialPuzzle = null;
     }
 
     // -----------------------------------------------------------------------
@@ -152,6 +155,7 @@ export class Board {
         this._dailyDate = dailyDate || null;
         this._gameOver = false;
         this.mode = mode;
+        this._initialPuzzle = this._board.map(r => [...r]);
 
         this.notes = new Notes(this.boardSize, this.blockSize);
         this.history = new History();
@@ -173,6 +177,7 @@ export class Board {
         this._board = savedState.board || Board._emptyGrid(this.boardSize);
         this._solution = savedState.solution || Board._emptyGrid(this.boardSize);
         this._given = savedState.given || Board._emptyBoolGrid(this.boardSize);
+        this._initialPuzzle = savedState.initialPuzzle || null;
         this._difficulty = savedState.difficulty || 'easy';
         this._score = savedState.score || 0;
         this._mistakes = savedState.mistakes || 0;
@@ -211,6 +216,7 @@ export class Board {
             board: this._board.map(r => [...r]),
             solution: this._solution.map(r => [...r]),
             given: this._given.map(r => [...r]),
+            initialPuzzle: this._initialPuzzle ? this._initialPuzzle.map(r => [...r]) : null,
             difficulty: this._difficulty,
             score: this._score,
             mistakes: this._mistakes,
@@ -540,6 +546,49 @@ export class Board {
         return this._dailyDate;
     }
 
+    /**
+     * Get the initial puzzle snapshot (before any player input).
+     *
+     * @returns {number[][]|null}
+     */
+    getInitialPuzzle() {
+        return this._initialPuzzle;
+    }
+
+    /**
+     * Start a new game from a pre-existing puzzle (used for replay mode).
+     *
+     * @param {number[][]} puzzle - The initial puzzle board.
+     * @param {number[][]} solution - The complete solution.
+     * @param {boolean[][]} given - Given cell flags.
+     * @param {string} difficulty - Difficulty key.
+     * @param {string} [mode='classic'] - Game mode.
+     * @param {object} [options={}] - Additional options (boardSize, duration, etc.).
+     */
+    newGameFromPuzzle(puzzle, solution, given, difficulty, mode = 'classic', options = {}) {
+        if (options.boardSize) {
+            this.boardSize = options.boardSize;
+            this.blockSize = getBlockSize(this.boardSize);
+        }
+
+        this._board = puzzle.map(r => [...r]);
+        this._solution = solution.map(r => [...r]);
+        this._given = given.map(r => [...r]);
+        this._initialPuzzle = puzzle.map(r => [...r]);
+        this._difficulty = difficulty;
+        this._score = 0;
+        this._mistakes = 0;
+        this._hints = DEFAULT_HINTS;
+        this._dailyDate = options.dailyDate || null;
+        this._gameOver = false;
+        this.mode = mode;
+
+        this.notes = new Notes(this.boardSize, this.blockSize);
+        this.history = new History();
+        this.timer.reset();
+        this.timer.start();
+    }
+
     // -----------------------------------------------------------------------
     // Async game generation (Web Worker for large boards)
     // -----------------------------------------------------------------------
@@ -577,6 +626,7 @@ export class Board {
                     this._dailyDate = dailyDate || null;
                     this._gameOver = false;
                     this.mode = mode;
+                    this._initialPuzzle = this._board.map(r => [...r]);
                     this.notes = new Notes(this.boardSize, this.blockSize);
                     this.history = new History();
                     this.timer.reset();

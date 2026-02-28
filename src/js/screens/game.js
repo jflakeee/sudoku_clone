@@ -192,7 +192,9 @@ function onShow(params) {
     isDaily = !!params.daily;
     dailyDate = params.date || null;
 
-    if (params.loadSaved) {
+    if (params.replay) {
+        startReplayGame(params);
+    } else if (params.loadSaved) {
         restoreSavedGame();
     } else if (params.daily) {
         const date = params.date || new Date().toISOString().slice(0, 10);
@@ -269,6 +271,42 @@ async function startNewGame(difficulty, dailyDate, mode = 'classic', options = {
 
     // Update stats: gamesStarted
     updateGamesStarted(difficulty);
+}
+
+/**
+ * Start a replay game from a previously completed puzzle.
+ *
+ * @param {object} params - Replay parameters (puzzle, solution, given, difficulty, mode, boardSize).
+ */
+function startReplayGame(params) {
+    const boardSize = params.boardSize || 9;
+    const mode = params.mode || 'classic';
+
+    _app.board.newGameFromPuzzle(
+        params.puzzle,
+        params.solution,
+        params.given,
+        params.difficulty || 'easy',
+        mode,
+        { boardSize, dailyDate: params.dailyDate }
+    );
+
+    // Rebuild UI for the board size
+    document.body.dataset.gridSize = String(boardSize);
+    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(boardSize);
+    if (_app.highlightUI) _app.highlightUI._gridSize = boardSize;
+    if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(boardSize);
+
+    // Setup timer tick callback
+    _app.board.timer.onTick((formatted) => {
+        if (timerValueEl && _app.settings.timer) {
+            timerValueEl.textContent = formatted;
+        }
+    });
+
+    // Reset UI
+    resetGameUI(params.difficulty || 'easy');
+    renderFullGrid();
 }
 
 /**

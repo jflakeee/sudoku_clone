@@ -20,7 +20,8 @@ const MONTH_NAMES = [
 ];
 
 const WEEKDAY_COUNT = 7;
-const MONTHS_TO_SHOW = 8;
+const MONTHS_PAST = 6;
+const MONTHS_FUTURE = 2;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -87,7 +88,7 @@ function renderMonthTabs() {
     const today = new Date();
     const months = [];
 
-    for (let i = MONTHS_TO_SHOW - 1; i >= 0; i--) {
+    for (let i = MONTHS_PAST; i >= -MONTHS_FUTURE; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         months.push(d);
     }
@@ -210,12 +211,10 @@ function renderCalendar() {
             cell.appendChild(indicator);
         }
 
-        if (!isFuture) {
-            cell.addEventListener('click', () => {
-                _selectedDate = dateStr;
-                renderCalendar();
-            });
-        }
+        cell.addEventListener('click', () => {
+            _selectedDate = dateStr;
+            renderCalendar();
+        });
 
         container.appendChild(cell);
     }

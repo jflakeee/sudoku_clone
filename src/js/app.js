@@ -27,6 +27,8 @@ import { initAwardsScreen } from './screens/awards.js';
 import { initSettingsScreen } from './screens/settings.js';
 import { initTutorialScreen } from './screens/tutorial.js';
 import { initModeSelectScreen } from './screens/mode-select.js';
+import { initHistoryScreen } from './screens/history.js';
+import { initPrintScreen } from './screens/print.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -351,6 +353,8 @@ function init() {
     initSettingsScreen(app);
     initTutorialScreen(app);
     initModeSelectScreen(app);
+    initHistoryScreen(app);
+    initPrintScreen(app);
 
     // ----- Global event delegation -----
     document.addEventListener('click', (e) => {

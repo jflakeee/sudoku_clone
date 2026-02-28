@@ -7,7 +7,7 @@
  * @module screens/complete
  */
 
-import { loadStats, saveStats, clearGame, loadDailyChallenge, saveDailyChallenge, checkAndResetHighScores } from '../utils/storage.js';
+import { loadStats, saveStats, clearGame, loadDailyChallenge, saveDailyChallenge, checkAndResetHighScores, saveGameHistory } from '../utils/storage.js';
 import { createConfetti, animateScoreCountUp } from '../ui/animations.js';
 import { calculateTimeAttackBonus } from '../core/scorer.js';
 
@@ -163,6 +163,28 @@ function onShow(params) {
     // --- Daily challenge completion ---
     if (isDaily) {
         markDailyCompleted(params.dailyDate);
+    }
+
+    // --- Archive to game history (successful games only) ---
+    if (success !== false && _app?.board) {
+        try {
+            const board = _app.board;
+            const historyEntry = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                date: new Date().toISOString(),
+                difficulty,
+                mode,
+                boardSize: board.boardSize || 9,
+                score,
+                time,
+                mistakes,
+                puzzle: board.getInitialPuzzle(),
+                solution: board.getSolution()?.map(r => [...r]) || null,
+                given: board.getGiven()?.map(r => [...r]) || null,
+                dailyDate: params.dailyDate || board.getDailyDate() || null,
+            };
+            saveGameHistory(historyEntry);
+        } catch { /* ignore archive errors */ }
     }
 
     // --- Clear saved game ---
