@@ -1167,9 +1167,7 @@ body.dark-mode .puzzle-loading {
     font-size: 1.7rem;
   }
 
-  /* Distribute extra vertical space evenly */
   #screen-game .grid-container {
-    flex: 1;
     align-items: center;
   }
 
