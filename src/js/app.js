@@ -15,7 +15,7 @@ import { GridUI } from './ui/grid.js';
 import { HighlightUI } from './ui/highlight.js';
 import { NumberpadUI } from './ui/numberpad.js';
 import { ToolbarUI } from './ui/toolbar.js';
-import { loadSettings, saveSettings, loadGame, saveGame, loadStats, saveStats } from './utils/storage.js';
+import { loadSettings, saveSettings, loadGame, saveGame, loadStats, saveStats, migrateStorageIfNeeded } from './utils/storage.js';
 import { SoundManager } from './utils/sound.js';
 import { initMainScreen } from './screens/main.js';
 import { initGameScreen } from './screens/game.js';
@@ -26,6 +26,7 @@ import { initStatsScreen } from './screens/stats.js';
 import { initAwardsScreen } from './screens/awards.js';
 import { initSettingsScreen } from './screens/settings.js';
 import { initTutorialScreen } from './screens/tutorial.js';
+import { initModeSelectScreen } from './screens/mode-select.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -80,6 +81,9 @@ const app = {
     // Persistent data helpers (re-exported for convenience)
     settings: null,
     sound: null,
+
+    // Pending mode parameters from mode-select screen
+    _pendingModeParams: {},
 
     // Utility references
     DIFFICULTY_LABELS,
@@ -244,8 +248,13 @@ function manageAutoSave(screenName) {
 
 /**
  * Show the difficulty selection modal.
+ *
+ * @param {object} [modeParams] - Optional mode parameters from mode-select screen.
  */
-function showDifficultyModal() {
+function showDifficultyModal(modeParams) {
+    if (modeParams) {
+        app._pendingModeParams = modeParams;
+    }
     const modal = document.getElementById('difficulty-modal');
     if (modal) modal.style.display = '';
 }
@@ -292,8 +301,9 @@ function hidePauseOverlay() {
  * Bootstrap the entire application.  Called once on DOMContentLoaded.
  */
 function init() {
-    // ----- Settings & sound -----
+    // ----- Settings & migration -----
     app.settings = loadSettings();
+    migrateStorageIfNeeded();
 
     // Apply dark mode from saved settings
     if (app.settings.darkMode) {
@@ -340,6 +350,7 @@ function init() {
     initAwardsScreen(app);
     initSettingsScreen(app);
     initTutorialScreen(app);
+    initModeSelectScreen(app);
 
     // ----- Global event delegation -----
     document.addEventListener('click', (e) => {
@@ -371,8 +382,9 @@ function init() {
 
         const key = e.key;
 
-        // Number keys 1-9
-        if (key >= '1' && key <= '9') {
+        // Number keys 1-9 (keyboard only supports up to 9)
+        const maxNum = app.board?.boardSize || 9;
+        if (key >= '1' && key <= '9' && parseInt(key, 10) <= maxNum) {
             e.preventDefault();
             if (app.input) {
                 app.input.inputNumber(parseInt(key, 10));
@@ -384,15 +396,18 @@ function init() {
         // Arrow keys - move selection
         if (key.startsWith('Arrow') && app.input && app.board) {
             e.preventDefault();
+            const boardSize = app.board.boardSize || 9;
+            const midIdx = Math.floor(boardSize / 2);
+            const maxIdx = boardSize - 1;
             const sel = app.input.getSelectedCell();
-            let row = sel ? sel.row : 4;
-            let col = sel ? sel.col : 4;
+            let row = sel ? sel.row : midIdx;
+            let col = sel ? sel.col : midIdx;
 
             switch (key) {
                 case 'ArrowUp':    row = Math.max(0, row - 1); break;
-                case 'ArrowDown':  row = Math.min(8, row + 1); break;
+                case 'ArrowDown':  row = Math.min(maxIdx, row + 1); break;
                 case 'ArrowLeft':  col = Math.max(0, col - 1); break;
-                case 'ArrowRight': col = Math.min(8, col + 1); break;
+                case 'ArrowRight': col = Math.min(maxIdx, col + 1); break;
             }
 
             app.input.selectCell(row, col);
@@ -473,12 +488,32 @@ function init() {
             }
         });
 
+        // Recommended durations per difficulty for time-attack mode (seconds)
+        const RECOMMENDED_DURATION = {
+            easy: 600,
+            normal: 900,
+            hard: 1200,
+            expert: 1500,
+            master: 1800,
+        };
+
         // Difficulty option selected
         difficultyModal.querySelectorAll('.difficulty-option').forEach(btn => {
             btn.addEventListener('click', () => {
                 const difficulty = btn.getAttribute('data-difficulty');
                 hideDifficultyModal();
-                navigate('game', { difficulty, daily: false, loadSaved: false });
+
+                const params = { difficulty, daily: false, loadSaved: false, ...app._pendingModeParams };
+
+                // Apply recommended duration for time-attack if user didn't pick a custom time
+                if (params.mode === 'timeAttack' && params.duration === 600 && RECOMMENDED_DURATION[difficulty]) {
+                    params.duration = RECOMMENDED_DURATION[difficulty];
+                }
+
+                navigate('game', params);
+                // Remove mode-select from history so back from game goes to main
+                screenHistory = screenHistory.filter(s => s !== 'mode-select');
+                app._pendingModeParams = {};
             });
         });
     }
@@ -500,7 +535,7 @@ function handleGlobalAction(action, target) {
             break;
 
         case 'new-game':
-            showDifficultyModal();
+            navigate('mode-select');
             break;
 
         case 'pause':

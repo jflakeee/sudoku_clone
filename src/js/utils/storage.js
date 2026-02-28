@@ -193,22 +193,37 @@ export function clearGame() {
 // ---------------------------------------------------------------------------
 
 /**
+ * Get the localStorage key for stats based on game mode.
+ *
+ * @param {string} mode - Game mode ('classic', 'timeAttack', etc.).
+ * @returns {string} The storage key.
+ */
+function getStatsKey(mode) {
+    if (mode && mode !== 'classic') {
+        return `${KEYS.STATS}_${mode}`;
+    }
+    return KEYS.STATS;
+}
+
+/**
  * Save statistics.
  *
  * @param {object} stats - Stats object keyed by difficulty.
+ * @param {string} [mode='classic'] - Game mode.
  */
-export function saveStats(stats) {
-    writeJSON(KEYS.STATS, stats);
+export function saveStats(stats, mode = 'classic') {
+    writeJSON(getStatsKey(mode), stats);
 }
 
 /**
  * Load statistics, falling back to a full default stats object when nothing
  * has been persisted yet.
  *
+ * @param {string} [mode='classic'] - Game mode.
  * @returns {Record<string, object>} Per-difficulty stats.
  */
-export function loadStats() {
-    const stored = readJSON(KEYS.STATS);
+export function loadStats(mode = 'classic') {
+    const stored = readJSON(getStatsKey(mode));
     if (!stored || typeof stored !== 'object') {
         return getDefaultStats();
     }
@@ -306,6 +321,45 @@ export function checkAndResetHighScores(hs) {
     }
 
     hs.lastDate = todayStr;
+}
+
+// ---------------------------------------------------------------------------
+// Daily challenge
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Data migration
+// ---------------------------------------------------------------------------
+
+const CURRENT_STORAGE_VERSION = 1;
+
+/**
+ * Run any needed data migrations on localStorage.
+ *
+ * Called once during app init. Uses the `sudoku_version` key to track
+ * which migrations have already been applied.
+ */
+export function migrateStorageIfNeeded() {
+    const versionKey = 'sudoku_version';
+    const storedVersion = parseInt(localStorage.getItem(versionKey) || '0', 10);
+
+    if (storedVersion >= CURRENT_STORAGE_VERSION) return;
+
+    // --- Migration v0 → v1: add mode / boardSize defaults to saved game ---
+    if (storedVersion < 1) {
+        const game = readJSON(KEYS.CURRENT_GAME);
+        if (game && typeof game === 'object') {
+            let changed = false;
+            if (!game.mode) { game.mode = 'classic'; changed = true; }
+            if (!game.boardSize) { game.boardSize = 9; changed = true; }
+            if (changed) writeJSON(KEYS.CURRENT_GAME, game);
+        }
+    }
+
+    // Stamp current version
+    try {
+        localStorage.setItem(versionKey, String(CURRENT_STORAGE_VERSION));
+    } catch { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------

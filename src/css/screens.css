@@ -62,6 +62,45 @@
   color: var(--text-secondary);
 }
 
+/* --- Puzzle Loading Overlay --- */
+.puzzle-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 100;
+  gap: var(--spacing-md);
+}
+
+body.dark-mode .puzzle-loading {
+  background: rgba(30, 30, 48, 0.9);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--cell-border);
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@keyframes spinner-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* --- Toolbar --- */
 .toolbar {
   display: flex;
@@ -1146,5 +1185,170 @@
 
   .toolbar {
     padding: var(--spacing-md) var(--spacing-xl);
+  }
+}
+
+
+/* ===========================
+   Mode Selection Screen
+   =========================== */
+
+.mode-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-lg);
+  overflow-y: auto;
+}
+
+.mode-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-sm);
+}
+
+.game-mode-options {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.game-mode-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-md);
+  border: 2px solid var(--cell-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.game-mode-option.active {
+  border-color: var(--primary);
+  background: rgba(41, 121, 255, 0.08);
+}
+
+.mode-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mode-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.time-duration-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.time-option {
+  padding: 10px 8px;
+  border: 2px solid var(--cell-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.time-option.active {
+  border-color: var(--primary);
+  background: rgba(41, 121, 255, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.board-size-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.size-option {
+  padding: 10px 4px;
+  border: 2px solid var(--cell-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.size-option.active {
+  border-color: var(--primary);
+  background: rgba(41, 121, 255, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.mode-actions {
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xl);
+  flex-shrink: 0;
+}
+
+.mode-actions .btn-primary {
+  width: 100%;
+}
+
+
+/* ===========================
+   Large Board Sidebar Layout (12x12 / 16x16)
+   On tablet+ screens, place controls beside the grid.
+   =========================== */
+
+@media (min-width: 768px) {
+  body[data-grid-size="12"] #screen-game,
+  body[data-grid-size="16"] #screen-game {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  body[data-grid-size="12"] #screen-game .game-header,
+  body[data-grid-size="16"] #screen-game .game-header {
+    flex-basis: 100%;
+  }
+
+  body[data-grid-size="12"] #screen-game .game-info-bar,
+  body[data-grid-size="16"] #screen-game .game-info-bar {
+    flex-basis: 100%;
+  }
+
+  body[data-grid-size="12"] #screen-game .grid-container,
+  body[data-grid-size="16"] #screen-game .grid-container {
+    flex: 0 0 auto;
+    max-width: 500px;
+  }
+
+  /* Stack toolbar + numberpad vertically on the side */
+  body[data-grid-size="12"] #screen-game .toolbar,
+  body[data-grid-size="16"] #screen-game .toolbar {
+    flex-direction: column;
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  body[data-grid-size="12"] #screen-game .numberpad,
+  body[data-grid-size="16"] #screen-game .numberpad {
+    flex-direction: column;
+    flex-wrap: wrap;
+    max-height: 320px;
+    padding: var(--spacing-md);
   }
 }

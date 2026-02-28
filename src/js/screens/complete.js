@@ -9,6 +9,7 @@
 
 import { loadStats, saveStats, clearGame, loadDailyChallenge, saveDailyChallenge, checkAndResetHighScores } from '../utils/storage.js';
 import { createConfetti, animateScoreCountUp } from '../ui/animations.js';
+import { calculateTimeAttackBonus } from '../core/scorer.js';
 
 // ---------------------------------------------------------------------------
 // Difficulty label map
@@ -69,9 +70,7 @@ export function initCompleteScreen(app) {
     if (newGameBtn) {
         newGameBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (_app.showDifficultyModal) {
-                _app.showDifficultyModal();
-            }
+            _app.navigate('mode-select');
         });
     }
 
@@ -107,6 +106,11 @@ function onShow(params) {
         difficulty = 'easy',
         mistakes = 0,
         isDaily = false,
+        mode = 'classic',
+        success = true,
+        remainingTime = 0,
+        totalTime = 0,
+        message = '',
     } = params;
 
     // --- Display basic info ---
@@ -124,19 +128,37 @@ function onShow(params) {
     }
 
     // --- Update stats ---
-    const recordMessage = updateStats(difficulty, score, time, mistakes);
+    const recordMessage = updateStats(difficulty, score, time, mistakes, mode);
 
     // --- Display message ---
     if (messageEl) {
-        if (_app.settings.statsMessage) {
+        if (mode === 'timeAttack') {
+            if (success) {
+                messageEl.textContent = `${remainingTime}초 남기고 완료!`;
+            } else {
+                messageEl.textContent = message || '시간 초과!';
+            }
+        } else if (_app.settings.statsMessage) {
             messageEl.textContent = recordMessage || '';
         } else {
             messageEl.textContent = '';
         }
     }
 
+    // --- Time-attack bonus ---
+    const bonusEl = screenEl?.querySelector('.complete-bonus');
+    if (bonusEl) {
+        if (mode === 'timeAttack' && success && remainingTime > 0) {
+            const bonus = calculateTimeAttackBonus(difficulty, remainingTime, totalTime, mistakes);
+            bonusEl.textContent = `타임어택 보너스: +${bonus.toLocaleString()}`;
+            bonusEl.style.display = '';
+        } else {
+            bonusEl.style.display = 'none';
+        }
+    }
+
     // --- Update high-score display ---
-    updateHighScoreDisplay(difficulty);
+    updateHighScoreDisplay(difficulty, mode);
 
     // --- Daily challenge completion ---
     if (isDaily) {
@@ -146,10 +168,12 @@ function onShow(params) {
     // --- Clear saved game ---
     clearGame();
 
-    // --- Confetti ---
+    // --- Confetti (skip on time-attack failure) ---
     if (confettiArea) {
         confettiArea.innerHTML = '';
-        createConfetti(confettiArea, 50);
+        if (mode !== 'timeAttack' || success) {
+            createConfetti(confettiArea, 50);
+        }
     }
 }
 
@@ -166,8 +190,8 @@ function onShow(params) {
  * @param {number} mistakes
  * @returns {string} A record-breaking message, or empty string.
  */
-function updateStats(difficulty, score, time, mistakes) {
-    const stats = loadStats();
+function updateStats(difficulty, score, time, mistakes, mode = 'classic') {
+    const stats = loadStats(mode);
     const ds = stats[difficulty];
     if (!ds) return '';
 
@@ -222,7 +246,7 @@ function updateStats(difficulty, score, time, mistakes) {
         }
     }
 
-    saveStats(stats);
+    saveStats(stats, mode);
 
     return message;
 }
@@ -232,10 +256,10 @@ function updateStats(difficulty, score, time, mistakes) {
  *
  * @param {string} difficulty
  */
-function updateHighScoreDisplay(difficulty) {
+function updateHighScoreDisplay(difficulty, mode = 'classic') {
     if (!screenEl) return;
 
-    const stats = loadStats();
+    const stats = loadStats(mode);
     const hs = stats[difficulty]?.highScores || {};
 
     const mappings = {
