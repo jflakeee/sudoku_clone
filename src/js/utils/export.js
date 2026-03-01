@@ -141,11 +141,12 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
     // Outer border (print CSS: 2px solid #000)
     ctx.strokeRect(gx, gy, gp, gp);
 
-    // Given cell backgrounds (#ededed matching print CSS)
+    // Given cell backgrounds (#ededed matching print CSS) – only original puzzle cells
+    const puzzle = entry.puzzle;
     ctx.fillStyle = '#ededed';
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
-            if (src[r]?.[c]) {
+            if (puzzle[r]?.[c]) {
                 ctx.fillRect(gx + c * cell + 1, gy + r * cell + 1, cell - 1, cell - 1);
             }
         }
@@ -262,10 +263,11 @@ function svgGrid(entry, x, y, showAnswer) {
         }
     }
 
-    // Given cell backgrounds
+    // Given cell backgrounds – only original puzzle cells
+    const puzzle = entry.puzzle;
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
-            if (src[r]?.[c]) {
+            if (puzzle[r]?.[c]) {
                 s += `<rect x="${gx + c * cell}" y="${gy + r * cell}" width="${cell}" height="${cell}" fill="#ededed"/>`;
             }
         }

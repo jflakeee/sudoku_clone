@@ -91,9 +91,10 @@ function createPrintGrid(entry) {
             }
 
             const val = source[r]?.[c] || 0;
+            const isOriginalGiven = (entry.puzzle[r]?.[c] || 0) > 0;
             if (val > 0) {
                 td.textContent = String(val);
-                td.classList.add('given');
+                if (isOriginalGiven) td.classList.add('given');
             } else {
                 td.innerHTML = '&nbsp;';
             }
