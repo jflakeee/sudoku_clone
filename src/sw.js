@@ -2,7 +2,7 @@
  * Service Worker - Cache-first strategy for offline support
  */
 
-const CACHE_NAME = 'sudoku-v15';
+const CACHE_NAME = 'sudoku-v16';
 
 const PRECACHE_URLS = [
   './',

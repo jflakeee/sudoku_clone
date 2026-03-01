@@ -141,6 +141,16 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
     // Outer border (print CSS: 2px solid #000)
     ctx.strokeRect(gx, gy, gp, gp);
 
+    // Given cell backgrounds (#ededed matching print CSS)
+    ctx.fillStyle = '#ededed';
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (src[r]?.[c]) {
+                ctx.fillRect(gx + c * cell + 1, gy + r * cell + 1, cell - 1, cell - 1);
+            }
+        }
+    }
+
     // Numbers (print CSS: font-weight 700, color #000)
     const fs = getFontSize(cell);
     ctx.font = `700 ${fs}px ${FONT_FAMILY}`;
@@ -249,6 +259,15 @@ function svgGrid(entry, x, y, showAnswer) {
         }
         if (i % block.cols === 0) {
             s += `<line x1="${gx + i * cell}" y1="${gy}" x2="${gx + i * cell}" y2="${gy + gp}" stroke="#000" stroke-width="2"/>`;
+        }
+    }
+
+    // Given cell backgrounds
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (src[r]?.[c]) {
+                s += `<rect x="${gx + c * cell}" y="${gy + r * cell}" width="${cell}" height="${cell}" fill="#ededed"/>`;
+            }
         }
     }
 

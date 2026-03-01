@@ -69,6 +69,7 @@
 .cell.given {
   font-weight: 700;
   color: var(--text-given);
+  background: var(--given-bg);
 }
 
 /* User-input numbers */

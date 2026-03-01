@@ -153,6 +153,7 @@
 .print-cell.given {
   font-weight: 700;
   color: #222;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 /* Dark mode: make preview grid readable */
@@ -318,6 +319,7 @@ body.dark-mode .print-cell.block-top {
   .print-cell.given {
     font-weight: 700;
     color: #000;
+    background: #ededed;
   }
 
   .print-cell.block-left {
