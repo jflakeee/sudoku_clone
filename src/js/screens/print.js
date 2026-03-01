@@ -93,6 +93,8 @@ function createPrintGrid(entry) {
             if (val > 0) {
                 td.textContent = String(val);
                 td.classList.add('given');
+            } else {
+                td.innerHTML = '&nbsp;';
             }
 
             tr.appendChild(td);

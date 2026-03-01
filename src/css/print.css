@@ -201,7 +201,7 @@ body.dark-mode .print-cell.block-top {
   }
 
   #screen-print {
-    display: flex !important;
+    display: block !important;
     position: static !important;
     width: 100% !important;
     height: auto !important;
@@ -217,47 +217,65 @@ body.dark-mode .print-cell.block-top {
   }
 
   .print-preview {
-    display: flex !important;
-    flex-wrap: wrap;
+    display: grid !important;
     padding: 0;
     overflow: visible !important;
     width: 100%;
-    justify-content: center;
+    justify-items: center;
     gap: 8mm;
   }
 
-  /* Single layout: one large grid centered */
+  .print-grid-wrapper {
+    margin: 0;
+    width: 100%;
+  }
+
+  /* Single layout: 1 column, 1 large grid */
+  .print-preview.layout-single {
+    grid-template-columns: 1fr;
+  }
+
   .print-preview.layout-single .print-grid-wrapper {
-    width: 170mm;
     max-width: 170mm;
     margin: 10mm auto;
   }
 
-  /* Dual layout: 2 grids in 1 column */
+  /* Dual layout: 1 column, 2 grids */
+  .print-preview.layout-dual {
+    grid-template-columns: 1fr;
+  }
+
   .print-preview.layout-dual .print-grid-wrapper {
-    width: 120mm;
     max-width: 120mm;
-    margin: 5mm auto;
     page-break-inside: avoid;
   }
 
-  /* Quad layout: 4 grids in 2x2 */
+  /* Quad layout: 2 columns × 2 rows */
+  .print-preview.layout-quad {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .print-preview.layout-quad .print-grid-wrapper {
-    width: 85mm;
     max-width: 85mm;
     page-break-inside: avoid;
   }
 
-  /* Six layout: 6 grids in 2x3 */
+  /* Six layout: 2 columns × 3 rows */
+  .print-preview.layout-six {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .print-preview.layout-six .print-grid-wrapper {
-    width: 75mm;
     max-width: 75mm;
     page-break-inside: avoid;
   }
 
-  /* Eight layout: 8 grids in 2x4 */
+  /* Eight layout: 2 columns × 4 rows */
+  .print-preview.layout-eight {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .print-preview.layout-eight .print-grid-wrapper {
-    width: 75mm;
     max-width: 75mm;
     page-break-inside: avoid;
   }
