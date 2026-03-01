@@ -175,11 +175,40 @@ body.dark-mode .puzzle-loading {
 /* --- Number Pad --- */
 .numberpad {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: var(--spacing-sm) var(--spacing-md) var(--spacing-lg);
   flex-shrink: 0;
+}
+
+/* 12x12: compact 2-row numberpad (6 per row) */
+body[data-grid-size="12"] .numberpad {
+  max-width: 320px;
+  margin: 0 auto;
+  gap: 5px;
+  padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-sm);
+}
+
+body[data-grid-size="12"] .num-btn {
+  width: calc((100% - 25px) / 6);
+  height: 40px;
+  font-size: 1rem;
+}
+
+/* 16x16: compact 2-row numberpad (8 per row) */
+body[data-grid-size="16"] .numberpad {
+  max-width: 380px;
+  margin: 0 auto;
+  gap: 4px;
+  padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-sm);
+}
+
+body[data-grid-size="16"] .num-btn {
+  width: calc((100% - 28px) / 8);
+  height: 38px;
+  font-size: 0.9rem;
 }
 
 .num-btn {
@@ -1456,47 +1485,3 @@ body.dark-mode .history-batch-bar {
 }
 
 
-/* ===========================
-   Large Board Sidebar Layout (12x12 / 16x16)
-   On tablet+ screens, place controls beside the grid.
-   =========================== */
-
-@media (min-width: 768px) {
-  body[data-grid-size="12"] #screen-game,
-  body[data-grid-size="16"] #screen-game {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  body[data-grid-size="12"] #screen-game .game-header,
-  body[data-grid-size="16"] #screen-game .game-header {
-    flex-basis: 100%;
-  }
-
-  body[data-grid-size="12"] #screen-game .game-info-bar,
-  body[data-grid-size="16"] #screen-game .game-info-bar {
-    flex-basis: 100%;
-  }
-
-  body[data-grid-size="12"] #screen-game .grid-container,
-  body[data-grid-size="16"] #screen-game .grid-container {
-    flex: 0 0 auto;
-    max-width: 500px;
-  }
-
-  /* Stack toolbar + numberpad vertically on the side */
-  body[data-grid-size="12"] #screen-game .toolbar,
-  body[data-grid-size="16"] #screen-game .toolbar {
-    flex-direction: column;
-    padding: var(--spacing-md);
-    gap: var(--spacing-sm);
-  }
-
-  body[data-grid-size="12"] #screen-game .numberpad,
-  body[data-grid-size="16"] #screen-game .numberpad {
-    flex-direction: column;
-    flex-wrap: wrap;
-    max-height: 320px;
-    padding: var(--spacing-md);
-  }
-}

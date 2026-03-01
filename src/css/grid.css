@@ -19,13 +19,11 @@
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   grid-template-rows: repeat(9, 1fr);
-  aspect-ratio: 1 / 1;
   width: 100%;
   max-width: 396px;
   max-height: 100%;
   border: 2px solid var(--grid-border);
   border-radius: 4px;
-  overflow: hidden;
   background: var(--bg-white);
   touch-action: manipulation;
   user-select: none;
