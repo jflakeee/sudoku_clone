@@ -23,20 +23,32 @@ const DIFFICULTY_LABELS = {
     master: '마스터',
 };
 
+/** System font stack matching the app's CSS */
+const FONT_FAMILY = '"Segoe UI", system-ui, -apple-system, sans-serif';
+
 const HEADER_HEIGHT = 28;
-const PADDING = 20;
-const GAP = 24;
+const PADDING = 24;
+const GAP = 28;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Cell pixel size – larger values yield better print quality. */
 function getCellSize(boardSize) {
-    if (boardSize <= 4) return 60;
-    if (boardSize <= 6) return 55;
-    if (boardSize <= 9) return 50;
-    if (boardSize <= 12) return 40;
-    return 30;
+    if (boardSize <= 4) return 80;
+    if (boardSize <= 6) return 70;
+    if (boardSize <= 9) return 60;
+    if (boardSize <= 12) return 50;
+    return 38;
+}
+
+/**
+ * Number font size.
+ * Matches actual CSS ratio: 16px font in ~44px cell ≈ 0.36.
+ */
+function getFontSize(cellSize) {
+    return Math.max(11, Math.round(cellSize * 0.36));
 }
 
 function headerText(entry, showAnswer) {
@@ -76,9 +88,9 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
     const src = showAnswer && entry.solution ? entry.solution : entry.puzzle;
     const gp = boardSize * cell;
 
-    // Header
-    ctx.fillStyle = '#333';
-    ctx.font = 'bold 14px sans-serif';
+    // Header (matches CSS: 0.85rem ≈ 14px, weight 600)
+    ctx.fillStyle = '#000';
+    ctx.font = `600 14px ${FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(headerText(entry, showAnswer), x + gp / 2, y + HEADER_HEIGHT / 2);
@@ -86,12 +98,12 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
     const gx = x;
     const gy = y + HEADER_HEIGHT;
 
-    // Background
+    // White background
     ctx.fillStyle = '#fff';
     ctx.fillRect(gx, gy, gp, gp);
 
-    // Thin cell borders
-    ctx.strokeStyle = '#999';
+    // Thin cell borders (print CSS: 1px solid #666)
+    ctx.strokeStyle = '#666';
     ctx.lineWidth = 1;
     for (let i = 1; i < boardSize; i++) {
         if (i % block.rows !== 0) {
@@ -108,8 +120,8 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
         }
     }
 
-    // Thick block borders
-    ctx.strokeStyle = '#333';
+    // Thick block borders (print CSS: 2px solid #000)
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     for (let i = 1; i < boardSize; i++) {
         if (i % block.rows === 0) {
@@ -126,13 +138,15 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
         }
     }
 
-    // Outer border
+    // Outer border (print CSS: 2px solid #000)
     ctx.strokeRect(gx, gy, gp, gp);
 
-    // Numbers
-    const fs = Math.max(10, Math.floor(cell * 0.55));
-    ctx.font = `bold ${fs}px sans-serif`;
-    ctx.fillStyle = '#222';
+    // Numbers (print CSS: font-weight 700, color #000)
+    const fs = getFontSize(cell);
+    ctx.font = `700 ${fs}px ${FONT_FAMILY}`;
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
             const v = src[r]?.[c] || 0;
@@ -209,44 +223,44 @@ function svgGrid(entry, x, y, showAnswer) {
 
     // Header
     s += `<text x="${x + gp / 2}" y="${y + HEADER_HEIGHT / 2}" text-anchor="middle" `
-       + `dominant-baseline="central" font-family="sans-serif" font-size="14" `
-       + `font-weight="bold" fill="#333">${escapeXml(headerText(entry, showAnswer))}</text>`;
+       + `dominant-baseline="central" font-family="${FONT_FAMILY}" font-size="14" `
+       + `font-weight="600" fill="#000">${escapeXml(headerText(entry, showAnswer))}</text>`;
 
     const gx = x;
     const gy = y + HEADER_HEIGHT;
 
     // Background + outer border
-    s += `<rect x="${gx}" y="${gy}" width="${gp}" height="${gp}" fill="#fff" stroke="#333" stroke-width="2"/>`;
+    s += `<rect x="${gx}" y="${gy}" width="${gp}" height="${gp}" fill="#fff" stroke="#000" stroke-width="2"/>`;
 
     // Thin cell borders
     for (let i = 1; i < boardSize; i++) {
         if (i % block.rows !== 0) {
-            s += `<line x1="${gx}" y1="${gy + i * cell}" x2="${gx + gp}" y2="${gy + i * cell}" stroke="#999" stroke-width="1"/>`;
+            s += `<line x1="${gx}" y1="${gy + i * cell}" x2="${gx + gp}" y2="${gy + i * cell}" stroke="#666" stroke-width="1"/>`;
         }
         if (i % block.cols !== 0) {
-            s += `<line x1="${gx + i * cell}" y1="${gy}" x2="${gx + i * cell}" y2="${gy + gp}" stroke="#999" stroke-width="1"/>`;
+            s += `<line x1="${gx + i * cell}" y1="${gy}" x2="${gx + i * cell}" y2="${gy + gp}" stroke="#666" stroke-width="1"/>`;
         }
     }
 
     // Thick block borders
     for (let i = 1; i < boardSize; i++) {
         if (i % block.rows === 0) {
-            s += `<line x1="${gx}" y1="${gy + i * cell}" x2="${gx + gp}" y2="${gy + i * cell}" stroke="#333" stroke-width="2"/>`;
+            s += `<line x1="${gx}" y1="${gy + i * cell}" x2="${gx + gp}" y2="${gy + i * cell}" stroke="#000" stroke-width="2"/>`;
         }
         if (i % block.cols === 0) {
-            s += `<line x1="${gx + i * cell}" y1="${gy}" x2="${gx + i * cell}" y2="${gy + gp}" stroke="#333" stroke-width="2"/>`;
+            s += `<line x1="${gx + i * cell}" y1="${gy}" x2="${gx + i * cell}" y2="${gy + gp}" stroke="#000" stroke-width="2"/>`;
         }
     }
 
     // Numbers
-    const fs = Math.max(10, Math.floor(cell * 0.55));
+    const fs = getFontSize(cell);
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
             const v = src[r]?.[c] || 0;
             if (v) {
                 s += `<text x="${gx + c * cell + cell / 2}" y="${gy + r * cell + cell / 2}" `
-                   + `text-anchor="middle" dominant-baseline="central" font-family="sans-serif" `
-                   + `font-size="${fs}" font-weight="bold" fill="#222">${v}</text>`;
+                   + `text-anchor="middle" dominant-baseline="central" font-family="${FONT_FAMILY}" `
+                   + `font-size="${fs}" font-weight="700" fill="#000">${v}</text>`;
             }
         }
     }
