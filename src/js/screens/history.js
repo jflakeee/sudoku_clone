@@ -1,7 +1,7 @@
 /**
  * Game History Screen Controller
  *
- * Displays completed games with filtering, and allows replay or print.
+ * Displays completed games with filtering, and allows replay, print, or batch print.
  *
  * @module screens/history
  */
@@ -36,6 +36,9 @@ let _app = null;
 /** @type {string} Current filter key. */
 let _currentFilter = 'all';
 
+/** @type {Set<string>} Selected history entry IDs for batch print. */
+let _selectedIds = new Set();
+
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
@@ -56,6 +59,7 @@ function renderHistoryList() {
 
     if (filtered.length === 0) {
         container.innerHTML = '<div class="history-empty">게임 기록이 없습니다.</div>';
+        updateBatchPrintBtn();
         return;
     }
 
@@ -64,6 +68,9 @@ function renderHistoryList() {
     filtered.forEach(entry => {
         const item = document.createElement('div');
         item.className = 'history-item';
+        if (_selectedIds.has(entry.id)) {
+            item.classList.add('selected');
+        }
 
         const dateStr = formatDate(entry.date);
         const diffLabel = DIFFICULTY_LABELS[entry.difficulty] || entry.difficulty;
@@ -71,8 +78,10 @@ function renderHistoryList() {
             ? '일일도전'
             : MODE_LABELS[entry.mode] || entry.mode;
         const sizeLabel = entry.boardSize ? `${entry.boardSize}×${entry.boardSize}` : '9×9';
+        const checked = _selectedIds.has(entry.id) ? 'checked' : '';
 
         item.innerHTML = `
+            <input type="checkbox" class="history-check" data-history-id="${entry.id}" ${checked}>
             <div class="history-item-info">
                 <div class="history-item-title">${diffLabel} · ${modeLabel}</div>
                 <div class="history-item-meta">${dateStr} · ${sizeLabel} · ${formatTime(entry.time)} · ${(entry.score || 0).toLocaleString()}점</div>
@@ -85,6 +94,24 @@ function renderHistoryList() {
 
         container.appendChild(item);
     });
+
+    updateBatchPrintBtn();
+}
+
+/**
+ * Update the batch print bar visibility and button text.
+ */
+function updateBatchPrintBtn() {
+    const bar = document.getElementById('history-batch-bar');
+    const btn = document.getElementById('btn-batch-print');
+    if (!bar || !btn) return;
+
+    if (_selectedIds.size > 0) {
+        bar.style.display = '';
+        btn.textContent = `${_selectedIds.size}개 인쇄`;
+    } else {
+        bar.style.display = 'none';
+    }
 }
 
 /**
@@ -167,6 +194,17 @@ function handlePrintSingle(entryId) {
     _app.navigate('print', { entries: [entry] });
 }
 
+/**
+ * Handle batch print button click.
+ */
+function handleBatchPrint() {
+    const allHistory = loadGameHistory();
+    const entries = allHistory.filter(e => _selectedIds.has(e.id));
+    if (entries.length === 0) return;
+
+    _app.navigate('print', { entries });
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -190,7 +228,7 @@ export function initHistoryScreen(app) {
         });
     }
 
-    // List delegation for replay/print
+    // List delegation for replay/print/checkbox
     const listEl = document.getElementById('history-list');
     if (listEl) {
         listEl.addEventListener('click', (e) => {
@@ -203,8 +241,29 @@ export function initHistoryScreen(app) {
             const printBtn = e.target.closest('.btn-print-single');
             if (printBtn) {
                 handlePrintSingle(printBtn.dataset.historyId);
+                return;
+            }
+
+            const checkbox = e.target.closest('.history-check');
+            if (checkbox) {
+                const id = checkbox.dataset.historyId;
+                const item = checkbox.closest('.history-item');
+                if (checkbox.checked) {
+                    _selectedIds.add(id);
+                    if (item) item.classList.add('selected');
+                } else {
+                    _selectedIds.delete(id);
+                    if (item) item.classList.remove('selected');
+                }
+                updateBatchPrintBtn();
             }
         });
+    }
+
+    // Batch print button
+    const batchBtn = document.getElementById('btn-batch-print');
+    if (batchBtn) {
+        batchBtn.addEventListener('click', handleBatchPrint);
     }
 
     // Screen show listener
@@ -212,6 +271,7 @@ export function initHistoryScreen(app) {
         const detail = /** @type {CustomEvent} */ (e).detail;
         if (detail.screen === 'history') {
             _currentFilter = 'all';
+            _selectedIds.clear();
             const filterBtns = document.querySelectorAll('#history-filters .history-filter');
             filterBtns.forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.filter === 'all');

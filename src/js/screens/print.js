@@ -1,7 +1,7 @@
 /**
  * Print Screen Controller
  *
- * Renders puzzle grids for printing (single or quad layout on A4).
+ * Renders puzzle grids for printing (single, dual, quad, six, eight layout on A4).
  *
  * @module screens/print
  */
@@ -21,6 +21,14 @@ const DIFFICULTY_LABELS = {
     master: '마스터',
 };
 
+const LAYOUT_LIMITS = {
+    single: 1,
+    dual: 2,
+    quad: 4,
+    six: 6,
+    eight: 8,
+};
+
 // ---------------------------------------------------------------------------
 // Module state
 // ---------------------------------------------------------------------------
@@ -28,11 +36,14 @@ const DIFFICULTY_LABELS = {
 /** @type {object|null} */
 let _app = null;
 
-/** @type {string} Current layout: 'single' or 'quad'. */
+/** @type {string} Current layout key. */
 let _layout = 'single';
 
 /** @type {object[]} Entries to print. */
 let _entries = [];
+
+/** @type {boolean} Whether to show answer key (full solution). */
+let _showAnswerKey = false;
 
 // ---------------------------------------------------------------------------
 // Grid rendering
@@ -47,7 +58,7 @@ let _entries = [];
 function createPrintGrid(entry) {
     const size = entry.boardSize || 9;
     const block = getBlockSize(size);
-    const puzzle = entry.puzzle;
+    const source = _showAnswerKey && entry.solution ? entry.solution : entry.puzzle;
     const wrapper = document.createElement('div');
     wrapper.className = 'print-grid-wrapper';
 
@@ -55,7 +66,7 @@ function createPrintGrid(entry) {
     const header = document.createElement('div');
     header.className = 'print-grid-header';
     const diffLabel = DIFFICULTY_LABELS[entry.difficulty] || entry.difficulty;
-    header.textContent = `${diffLabel} · ${size}×${size}`;
+    header.textContent = `${diffLabel} · ${size}×${size}${_showAnswerKey ? ' (정답)' : ''}`;
     wrapper.appendChild(header);
 
     // Table
@@ -78,7 +89,7 @@ function createPrintGrid(entry) {
                 td.classList.add('block-top');
             }
 
-            const val = puzzle[r]?.[c] || 0;
+            const val = source[r]?.[c] || 0;
             if (val > 0) {
                 td.textContent = String(val);
                 td.classList.add('given');
@@ -109,9 +120,8 @@ function renderPreview() {
         return;
     }
 
-    const entriesToRender = _layout === 'quad'
-        ? _entries.slice(0, 4)
-        : _entries.slice(0, 1);
+    const limit = LAYOUT_LIMITS[_layout] || 1;
+    const entriesToRender = _entries.slice(0, limit);
 
     entriesToRender.forEach(entry => {
         if (entry.puzzle) {
@@ -132,9 +142,11 @@ function renderPreview() {
 export function initPrintScreen(app) {
     _app = app;
 
-    // Layout toggle buttons
     const printScreen = document.getElementById('screen-print');
+    const answerCheckbox = document.getElementById('print-answer-key');
+
     if (printScreen) {
+        // Layout toggle buttons
         printScreen.addEventListener('click', (e) => {
             const layoutBtn = e.target.closest('.print-layout-btn');
             if (layoutBtn && layoutBtn.dataset.layout) {
@@ -153,12 +165,22 @@ export function initPrintScreen(app) {
         });
     }
 
+    // Answer key checkbox
+    if (answerCheckbox) {
+        answerCheckbox.addEventListener('change', () => {
+            _showAnswerKey = answerCheckbox.checked;
+            renderPreview();
+        });
+    }
+
     // Screen show listener
     document.addEventListener('screen-show', (e) => {
         const detail = /** @type {CustomEvent} */ (e).detail;
         if (detail.screen === 'print') {
             _entries = detail.params?.entries || [];
             _layout = 'single';
+            _showAnswerKey = false;
+            if (answerCheckbox) answerCheckbox.checked = false;
             if (printScreen) {
                 printScreen.querySelectorAll('.print-layout-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.layout === 'single');

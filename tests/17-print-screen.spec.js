@@ -250,4 +250,169 @@ test.describe('Print Screen (F6)', () => {
         await expect(printBtn).toBeVisible();
         await expect(printBtn).toHaveText('인쇄하기');
     });
+
+    test('all 5 layout buttons exist', async ({ page }) => {
+        await page.evaluate(async () => {
+            const mod = await import('./js/app.js');
+            mod.default.navigate('print', { entries: [] });
+        });
+        await page.waitForSelector('#screen-print.active');
+
+        await expect(page.locator('.print-layout-btn[data-layout="single"]')).toBeVisible();
+        await expect(page.locator('.print-layout-btn[data-layout="dual"]')).toBeVisible();
+        await expect(page.locator('.print-layout-btn[data-layout="quad"]')).toBeVisible();
+        await expect(page.locator('.print-layout-btn[data-layout="six"]')).toBeVisible();
+        await expect(page.locator('.print-layout-btn[data-layout="eight"]')).toBeVisible();
+    });
+
+    test('dual layout shows up to 2 grids', async ({ page }) => {
+        await page.evaluate(() => {
+            const makePuzzle = () => Array.from({ length: 9 }, (_, r) =>
+                Array.from({ length: 9 }, (_, c) => ((r * 3 + Math.floor(r / 3) + c) % 9 + 1))
+            );
+            const entries = [1, 2, 3].map(i => ({
+                id: `dual-${i}`,
+                date: new Date().toISOString(),
+                difficulty: 'easy',
+                mode: 'classic',
+                boardSize: 9,
+                score: 100,
+                time: 60,
+                mistakes: 0,
+                puzzle: makePuzzle(),
+                solution: makePuzzle(),
+                given: Array.from({ length: 9 }, () => Array(9).fill(true)),
+            }));
+            localStorage.setItem('sudoku_gameHistory', JSON.stringify(entries));
+        });
+
+        await page.click('[data-navigate="history"]');
+        await page.waitForSelector('#screen-history.active');
+        await page.click('.btn-print-single');
+        await page.waitForSelector('#screen-print.active');
+
+        await page.click('.print-layout-btn[data-layout="dual"]');
+        await expect(page.locator('.print-preview')).toHaveClass(/layout-dual/);
+        // Only 1 entry was passed via single print button
+        await expect(page.locator('.print-grid-wrapper')).toHaveCount(1);
+    });
+
+    test('six and eight layout buttons switch correctly', async ({ page }) => {
+        await page.evaluate(() => {
+            const makePuzzle = () => Array.from({ length: 9 }, (_, r) =>
+                Array.from({ length: 9 }, (_, c) => ((r * 3 + Math.floor(r / 3) + c) % 9 + 1))
+            );
+            const entries = [{
+                id: 'layout-switch',
+                date: new Date().toISOString(),
+                difficulty: 'easy',
+                mode: 'classic',
+                boardSize: 9,
+                score: 100,
+                time: 60,
+                mistakes: 0,
+                puzzle: makePuzzle(),
+                solution: makePuzzle(),
+                given: Array.from({ length: 9 }, () => Array(9).fill(true)),
+            }];
+            localStorage.setItem('sudoku_gameHistory', JSON.stringify(entries));
+        });
+
+        await page.click('[data-navigate="history"]');
+        await page.waitForSelector('#screen-history.active');
+        await page.click('.btn-print-single');
+        await page.waitForSelector('#screen-print.active');
+
+        // Switch to six
+        await page.click('.print-layout-btn[data-layout="six"]');
+        await expect(page.locator('.print-preview')).toHaveClass(/layout-six/);
+        await expect(page.locator('.print-layout-btn[data-layout="six"]')).toHaveClass(/active/);
+
+        // Switch to eight
+        await page.click('.print-layout-btn[data-layout="eight"]');
+        await expect(page.locator('.print-preview')).toHaveClass(/layout-eight/);
+        await expect(page.locator('.print-layout-btn[data-layout="eight"]')).toHaveClass(/active/);
+    });
+
+    test('answer key checkbox shows all numbers', async ({ page }) => {
+        await page.evaluate(() => {
+            // Create puzzle with some zeros (blank cells)
+            const puzzle = Array.from({ length: 9 }, (_, r) =>
+                Array.from({ length: 9 }, (_, c) => {
+                    // Make some cells blank
+                    if (r === 0 && c < 5) return 0;
+                    return ((r * 3 + Math.floor(r / 3) + c) % 9 + 1);
+                })
+            );
+            const solution = Array.from({ length: 9 }, (_, r) =>
+                Array.from({ length: 9 }, (_, c) => ((r * 3 + Math.floor(r / 3) + c) % 9 + 1))
+            );
+            const entries = [{
+                id: 'answer-key-test',
+                date: new Date().toISOString(),
+                difficulty: 'easy',
+                mode: 'classic',
+                boardSize: 9,
+                score: 100,
+                time: 60,
+                mistakes: 0,
+                puzzle,
+                solution,
+                given: Array.from({ length: 9 }, () => Array(9).fill(true)),
+            }];
+            localStorage.setItem('sudoku_gameHistory', JSON.stringify(entries));
+        });
+
+        await page.click('[data-navigate="history"]');
+        await page.waitForSelector('#screen-history.active');
+        await page.click('.btn-print-single');
+        await page.waitForSelector('#screen-print.active');
+
+        // Without answer key: some cells should be empty
+        const emptyBefore = await page.locator('.print-cell:not(.given)').count();
+        expect(emptyBefore).toBeGreaterThan(0);
+
+        // Toggle answer key on
+        await page.click('#print-answer-key');
+
+        // With answer key: all cells should have .given class
+        const emptyAfter = await page.locator('.print-cell:not(.given)').count();
+        expect(emptyAfter).toBe(0);
+    });
+
+    test('answer key header shows (정답) suffix', async ({ page }) => {
+        await page.evaluate(() => {
+            const makePuzzle = () => Array.from({ length: 9 }, (_, r) =>
+                Array.from({ length: 9 }, (_, c) => ((r * 3 + Math.floor(r / 3) + c) % 9 + 1))
+            );
+            const entries = [{
+                id: 'answer-header-test',
+                date: new Date().toISOString(),
+                difficulty: 'easy',
+                mode: 'classic',
+                boardSize: 9,
+                score: 100,
+                time: 60,
+                mistakes: 0,
+                puzzle: makePuzzle(),
+                solution: makePuzzle(),
+                given: Array.from({ length: 9 }, () => Array(9).fill(true)),
+            }];
+            localStorage.setItem('sudoku_gameHistory', JSON.stringify(entries));
+        });
+
+        await page.click('[data-navigate="history"]');
+        await page.waitForSelector('#screen-history.active');
+        await page.click('.btn-print-single');
+        await page.waitForSelector('#screen-print.active');
+
+        // Before checking answer key
+        await expect(page.locator('.print-grid-header')).not.toContainText('(정답)');
+
+        // Toggle answer key on
+        await page.click('#print-answer-key');
+
+        // After checking answer key
+        await expect(page.locator('.print-grid-header')).toContainText('(정답)');
+    });
 });

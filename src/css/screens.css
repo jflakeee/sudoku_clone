@@ -1260,6 +1260,35 @@ body.dark-mode .puzzle-loading {
   background: var(--cell-highlight);
 }
 
+.history-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.history-item.selected {
+  background: rgba(41, 121, 255, 0.06);
+}
+
+.history-batch-bar {
+  position: sticky;
+  bottom: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-white);
+  border-top: 1px solid var(--cell-border);
+  flex-shrink: 0;
+}
+
+body.dark-mode .history-batch-bar {
+  background: var(--bg-dark);
+}
+
+.history-batch-bar .btn-primary {
+  width: 100%;
+}
+
 .history-empty {
   display: flex;
   align-items: center;

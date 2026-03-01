@@ -38,6 +38,24 @@
   font-weight: 600;
 }
 
+.print-answer-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.print-answer-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
 .print-preview {
   flex: 1;
   overflow-y: auto;
@@ -54,9 +72,24 @@
   max-width: 400px;
 }
 
+.print-preview.layout-dual .print-grid-wrapper {
+  width: 100%;
+  max-width: 320px;
+}
+
 .print-preview.layout-quad .print-grid-wrapper {
   width: calc(50% - var(--spacing-sm));
   max-width: 240px;
+}
+
+.print-preview.layout-six .print-grid-wrapper {
+  width: calc(50% - var(--spacing-sm));
+  max-width: 200px;
+}
+
+.print-preview.layout-eight .print-grid-wrapper {
+  width: calc(50% - var(--spacing-sm));
+  max-width: 180px;
 }
 
 .print-actions {
@@ -194,8 +227,30 @@ body.dark-mode .print-cell.block-top {
     margin: 10mm auto;
   }
 
+  /* Dual layout: 2 grids in 1 column */
+  .print-preview.layout-dual .print-grid-wrapper {
+    width: 120mm;
+    max-width: 120mm;
+    margin: 5mm auto;
+    page-break-inside: avoid;
+  }
+
   /* Quad layout: 4 grids in 2x2 */
   .print-preview.layout-quad .print-grid-wrapper {
+    width: 85mm;
+    max-width: 85mm;
+    page-break-inside: avoid;
+  }
+
+  /* Six layout: 6 grids in 2x3 */
+  .print-preview.layout-six .print-grid-wrapper {
+    width: 85mm;
+    max-width: 85mm;
+    page-break-inside: avoid;
+  }
+
+  /* Eight layout: 8 grids in 2x4 */
+  .print-preview.layout-eight .print-grid-wrapper {
     width: 85mm;
     max-width: 85mm;
     page-break-inside: avoid;
