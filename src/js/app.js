@@ -29,6 +29,7 @@ import { initTutorialScreen } from './screens/tutorial.js';
 import { initModeSelectScreen } from './screens/mode-select.js';
 import { initHistoryScreen } from './screens/history.js';
 import { initPrintScreen } from './screens/print.js';
+import { generatePuzzle } from './core/generator.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -509,13 +510,31 @@ function init() {
 
                 const params = { difficulty, daily: false, loadSaved: false, ...app._pendingModeParams };
 
-                // Apply recommended duration for time-attack if user didn't pick a custom time
-                if (params.mode === 'timeAttack' && params.duration === 600 && RECOMMENDED_DURATION[difficulty]) {
-                    params.duration = RECOMMENDED_DURATION[difficulty];
-                }
+                if (params.forPrint) {
+                    // Print mode: generate N puzzles and navigate to print screen
+                    const count = params.printCount || 1;
+                    const boardSize = params.boardSize || 9;
+                    const entries = [];
+                    for (let i = 0; i < count; i++) {
+                        const puzzle = generatePuzzle(difficulty, boardSize);
+                        entries.push({
+                            id: 'print-' + Date.now() + '-' + i,
+                            puzzle: puzzle.board,
+                            solution: puzzle.solution,
+                            boardSize,
+                            difficulty,
+                        });
+                    }
+                    navigate('print', { entries });
+                } else {
+                    // Apply recommended duration for time-attack if user didn't pick a custom time
+                    if (params.mode === 'timeAttack' && params.duration === 600 && RECOMMENDED_DURATION[difficulty]) {
+                        params.duration = RECOMMENDED_DURATION[difficulty];
+                    }
 
-                navigate('game', params);
-                // Remove mode-select from history so back from game goes to main
+                    navigate('game', params);
+                }
+                // Remove mode-select from history so back from game/print goes to main
                 screenHistory = screenHistory.filter(s => s !== 'mode-select');
                 app._pendingModeParams = {};
             });

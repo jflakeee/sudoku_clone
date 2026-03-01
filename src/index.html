@@ -58,6 +58,10 @@
       <button class="btn btn-secondary" data-navigate="history">
         게임 기록
       </button>
+
+      <button class="btn btn-secondary" data-action="print-new">
+        인쇄
+      </button>
     </div>
   </div>
 
@@ -101,6 +105,16 @@
           <button class="size-option active" data-size="9">9×9</button>
           <button class="size-option" data-size="12">12×12</button>
           <button class="size-option" data-size="16">16×16</button>
+        </div>
+      </div>
+      <div class="mode-section print-count-section" style="display:none;">
+        <h3 class="mode-section-title">출력 갯수</h3>
+        <div class="print-count-grid">
+          <button class="count-option active" data-count="1">1개</button>
+          <button class="count-option" data-count="2">2개</button>
+          <button class="count-option" data-count="4">4개</button>
+          <button class="count-option" data-count="6">6개</button>
+          <button class="count-option" data-count="8">8개</button>
         </div>
       </div>
     </div>
@@ -629,6 +643,10 @@
     </div>
     <div class="print-actions">
       <button class="btn btn-primary" data-action="do-print">인쇄하기</button>
+      <div class="print-export-btns">
+        <button class="btn btn-secondary" data-action="save-png">PNG 저장</button>
+        <button class="btn btn-secondary" data-action="save-svg">SVG 저장</button>
+      </div>
     </div>
   </div>
 

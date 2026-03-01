@@ -1475,6 +1475,32 @@ body.dark-mode .history-batch-bar {
   font-weight: 600;
 }
 
+.print-count-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.count-option {
+  padding: 10px 4px;
+  border: 2px solid var(--cell-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.count-option.active {
+  border-color: var(--primary);
+  background: rgba(41, 121, 255, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
 .mode-actions {
   padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xl);
   flex-shrink: 0;

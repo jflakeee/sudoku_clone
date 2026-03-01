@@ -7,6 +7,7 @@
  */
 
 import { getBlockSize } from '../core/board-config.js';
+import { exportAsPng, exportAsSvg } from '../utils/export.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -164,6 +165,20 @@ export function initPrintScreen(app) {
                 return;
             }
 
+            const pngBtn = e.target.closest('[data-action="save-png"]');
+            if (pngBtn) {
+                const limit = LAYOUT_LIMITS[_layout] || 1;
+                exportAsPng(_entries.slice(0, limit), _layout, _showAnswerKey);
+                return;
+            }
+
+            const svgBtn = e.target.closest('[data-action="save-svg"]');
+            if (svgBtn) {
+                const limit = LAYOUT_LIMITS[_layout] || 1;
+                exportAsSvg(_entries.slice(0, limit), _layout, _showAnswerKey);
+                return;
+            }
+
             const printBtn = e.target.closest('[data-action="do-print"]');
             if (printBtn) {
                 window.print();
@@ -184,12 +199,20 @@ export function initPrintScreen(app) {
         const detail = /** @type {CustomEvent} */ (e).detail;
         if (detail.screen === 'print') {
             _entries = detail.params?.entries || [];
-            _layout = 'single';
             _showAnswerKey = false;
             if (answerCheckbox) answerCheckbox.checked = false;
+
+            // Auto-select layout based on entry count
+            const count = _entries.length;
+            if (count >= 8) _layout = 'eight';
+            else if (count >= 6) _layout = 'six';
+            else if (count >= 4) _layout = 'quad';
+            else if (count >= 2) _layout = 'dual';
+            else _layout = 'single';
+
             if (printScreen) {
                 printScreen.querySelectorAll('.print-layout-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.layout === 'single');
+                    btn.classList.toggle('active', btn.dataset.layout === _layout);
                 });
             }
             renderPreview();

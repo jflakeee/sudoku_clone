@@ -77,6 +77,15 @@ export function initMainScreen(app) {
         });
     }
 
+    // --- Print new puzzles button ---
+    const btnPrint = screenEl.querySelector('[data-action="print-new"]');
+    if (btnPrint) {
+        btnPrint.addEventListener('click', (e) => {
+            e.stopPropagation();
+            app.navigate('mode-select', { forPrint: true });
+        });
+    }
+
     // --- Daily challenge card (navigate handled via data-navigate="daily") ---
 
     // --- Update UI when this screen is shown ---

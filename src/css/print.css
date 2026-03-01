@@ -102,6 +102,16 @@
   width: 100%;
 }
 
+.print-export-btns {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.print-export-btns .btn {
+  flex: 1;
+}
+
 /* ===========================
    Print Grid (shared by preview and print)
    =========================== */
@@ -222,7 +232,7 @@ body.dark-mode .print-cell.block-top {
     overflow: visible !important;
     width: 100%;
     justify-items: center;
-    gap: 8mm;
+    gap: 6mm;
   }
 
   .print-grid-wrapper {
@@ -253,31 +263,47 @@ body.dark-mode .print-cell.block-top {
   /* Quad layout: 2 columns × 2 rows */
   .print-preview.layout-quad {
     grid-template-columns: 1fr 1fr;
+    gap: 4mm;
   }
 
   .print-preview.layout-quad .print-grid-wrapper {
-    max-width: 85mm;
+    max-width: 90mm;
     page-break-inside: avoid;
   }
 
   /* Six layout: 2 columns × 3 rows */
   .print-preview.layout-six {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 93mm 93mm;
+    justify-content: center;
+    justify-items: stretch;
+    row-gap: 0;
+    column-gap: 2mm;
   }
 
   .print-preview.layout-six .print-grid-wrapper {
-    max-width: 75mm;
+    max-width: none;
     page-break-inside: avoid;
+  }
+
+  .print-preview.layout-six .print-grid-header {
+    font-size: 7pt;
+    margin-bottom: 0.5mm;
   }
 
   /* Eight layout: 2 columns × 4 rows */
   .print-preview.layout-eight {
     grid-template-columns: 1fr 1fr;
+    gap: 1mm;
   }
 
   .print-preview.layout-eight .print-grid-wrapper {
-    max-width: 75mm;
+    max-width: 90mm;
     page-break-inside: avoid;
+  }
+
+  .print-preview.layout-eight .print-grid-header {
+    font-size: 7pt;
+    margin-bottom: 0.5mm;
   }
 
   .print-grid {
@@ -310,6 +336,6 @@ body.dark-mode .print-cell.block-top {
 
   @page {
     size: A4;
-    margin: 15mm;
+    margin: 7mm;
   }
 }
