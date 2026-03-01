@@ -102,6 +102,17 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
     ctx.fillStyle = '#fff';
     ctx.fillRect(gx, gy, gp, gp);
 
+    // Given cell backgrounds (#ededed) – drawn before borders so lines stay on top
+    const puzzle = entry.puzzle;
+    ctx.fillStyle = '#ededed';
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (puzzle[r]?.[c]) {
+                ctx.fillRect(gx + c * cell, gy + r * cell, cell, cell);
+            }
+        }
+    }
+
     // Thin cell borders (print CSS: 1px solid #666)
     ctx.strokeStyle = '#666';
     ctx.lineWidth = 1;
@@ -140,17 +151,6 @@ function drawGrid(ctx, entry, x, y, showAnswer) {
 
     // Outer border (print CSS: 2px solid #000)
     ctx.strokeRect(gx, gy, gp, gp);
-
-    // Given cell backgrounds (#ededed matching print CSS) – only original puzzle cells
-    const puzzle = entry.puzzle;
-    ctx.fillStyle = '#ededed';
-    for (let r = 0; r < boardSize; r++) {
-        for (let c = 0; c < boardSize; c++) {
-            if (puzzle[r]?.[c]) {
-                ctx.fillRect(gx + c * cell + 1, gy + r * cell + 1, cell - 1, cell - 1);
-            }
-        }
-    }
 
     // Numbers (print CSS: font-weight 700, color #000)
     const fs = getFontSize(cell);
@@ -243,6 +243,16 @@ function svgGrid(entry, x, y, showAnswer) {
     // Background + outer border
     s += `<rect x="${gx}" y="${gy}" width="${gp}" height="${gp}" fill="#fff" stroke="#000" stroke-width="2"/>`;
 
+    // Given cell backgrounds – drawn before borders so lines stay on top
+    const puzzle = entry.puzzle;
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (puzzle[r]?.[c]) {
+                s += `<rect x="${gx + c * cell}" y="${gy + r * cell}" width="${cell}" height="${cell}" fill="#ededed"/>`;
+            }
+        }
+    }
+
     // Thin cell borders
     for (let i = 1; i < boardSize; i++) {
         if (i % block.rows !== 0) {
@@ -260,16 +270,6 @@ function svgGrid(entry, x, y, showAnswer) {
         }
         if (i % block.cols === 0) {
             s += `<line x1="${gx + i * cell}" y1="${gy}" x2="${gx + i * cell}" y2="${gy + gp}" stroke="#000" stroke-width="2"/>`;
-        }
-    }
-
-    // Given cell backgrounds – only original puzzle cells
-    const puzzle = entry.puzzle;
-    for (let r = 0; r < boardSize; r++) {
-        for (let c = 0; c < boardSize; c++) {
-            if (puzzle[r]?.[c]) {
-                s += `<rect x="${gx + c * cell}" y="${gy + r * cell}" width="${cell}" height="${cell}" fill="#ededed"/>`;
-            }
         }
     }
 
