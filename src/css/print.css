@@ -64,6 +64,7 @@
   flex-wrap: wrap;
   gap: var(--spacing-md);
   justify-content: center;
+  align-items: flex-start;
   align-content: flex-start;
 }
 
@@ -117,11 +118,16 @@
   margin-bottom: var(--spacing-sm);
 }
 
+.print-grid-container {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+}
+
 .print-grid {
   width: 100%;
+  height: 100%;
   border-collapse: collapse;
   border: 2px solid #333;
-  aspect-ratio: 1 / 1;
   table-layout: fixed;
 }
 
@@ -217,7 +223,7 @@ body.dark-mode .print-cell.block-top {
     overflow: visible !important;
     width: 100%;
     justify-content: center;
-    gap: 10mm;
+    gap: 8mm;
   }
 
   /* Single layout: one large grid centered */
@@ -244,15 +250,15 @@ body.dark-mode .print-cell.block-top {
 
   /* Six layout: 6 grids in 2x3 */
   .print-preview.layout-six .print-grid-wrapper {
-    width: 85mm;
-    max-width: 85mm;
+    width: 75mm;
+    max-width: 75mm;
     page-break-inside: avoid;
   }
 
   /* Eight layout: 8 grids in 2x4 */
   .print-preview.layout-eight .print-grid-wrapper {
-    width: 85mm;
-    max-width: 85mm;
+    width: 75mm;
+    max-width: 75mm;
     page-break-inside: avoid;
   }
 
@@ -281,7 +287,7 @@ body.dark-mode .print-cell.block-top {
   .print-grid-header {
     color: #000;
     font-size: 10pt;
-    margin-bottom: 3mm;
+    margin-bottom: 2mm;
   }
 
   @page {

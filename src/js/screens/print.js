@@ -101,7 +101,11 @@ function createPrintGrid(entry) {
         table.appendChild(tr);
     }
 
-    wrapper.appendChild(table);
+    // Wrap table in a container div for reliable aspect-ratio
+    const container = document.createElement('div');
+    container.className = 'print-grid-container';
+    container.appendChild(table);
+    wrapper.appendChild(container);
     return wrapper;
 }
 
