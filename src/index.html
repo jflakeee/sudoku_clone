@@ -319,8 +319,13 @@
         <span class="menu-label">어워드</span>
         <svg class="menu-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
-      <button class="menu-item" data-navigate="stats">
+      <button class="menu-item" data-navigate="ranking">
         <span class="menu-icon">&#x1F4CA;</span>
+        <span class="menu-label">랭킹</span>
+        <svg class="menu-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+      <button class="menu-item" data-navigate="stats">
+        <span class="menu-icon">&#x1F4C8;</span>
         <span class="menu-label">통계</span>
         <svg class="menu-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
@@ -591,6 +596,44 @@
         <p class="rules-text">미리 채워진 숫자를 단서로 활용하여 나머지 빈 칸을 모두 올바르게 채우면 게임이 완료됩니다.</p>
       </div>
     </div>
+  </div>
+
+  <!-- ===== Ranking Screen ===== -->
+  <div id="screen-ranking" class="screen">
+    <div class="sub-header">
+      <button class="icon-btn btn-back" data-action="back" aria-label="뒤로가기">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <h2 class="sub-title">랭킹</h2>
+      <div class="sub-header-right"></div>
+    </div>
+
+    <div class="ranking-summary" id="ranking-summary"></div>
+
+    <div class="ranking-period-tabs" id="ranking-period-tabs">
+      <button class="ranking-tab active" data-period="all">전체</button>
+      <button class="ranking-tab" data-period="month">이번 달</button>
+      <button class="ranking-tab" data-period="week">이번 주</button>
+      <button class="ranking-tab" data-period="today">오늘</button>
+    </div>
+
+    <div class="ranking-filter-row">
+      <select class="ranking-select" id="ranking-difficulty">
+        <option value="all">전체 난이도</option>
+        <option value="easy">쉬움</option>
+        <option value="normal">보통</option>
+        <option value="hard">어려움</option>
+        <option value="expert">전문가</option>
+        <option value="master">마스터</option>
+      </select>
+      <select class="ranking-select" id="ranking-mode">
+        <option value="all">전체 모드</option>
+        <option value="classic">클래식</option>
+        <option value="timeAttack">타임어택</option>
+      </select>
+    </div>
+
+    <div class="ranking-list" id="ranking-list"></div>
   </div>
 
   <!-- ===== Game History Screen ===== -->

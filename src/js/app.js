@@ -27,6 +27,7 @@ import { initAwardsScreen } from './screens/awards.js';
 import { initSettingsScreen } from './screens/settings.js';
 import { initTutorialScreen } from './screens/tutorial.js';
 import { initModeSelectScreen } from './screens/mode-select.js';
+import { initRankingScreen } from './screens/ranking.js';
 import { initHistoryScreen } from './screens/history.js';
 import { initPrintScreen } from './screens/print.js';
 import { generatePuzzle } from './core/generator.js';
@@ -354,6 +355,7 @@ function init() {
     initSettingsScreen(app);
     initTutorialScreen(app);
     initModeSelectScreen(app);
+    initRankingScreen(app);
     initHistoryScreen(app);
     initPrintScreen(app);
 

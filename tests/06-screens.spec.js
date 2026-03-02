@@ -41,11 +41,11 @@ test.describe('Screen Content', () => {
         await expect(page.locator('.calendar-day.today')).toBeVisible();
     });
 
-    test('profile screen shows 5 menu items', async ({ page }) => {
+    test('profile screen shows 6 menu items', async ({ page }) => {
         await navigateToScreen(page, 'profile');
 
         const menuItems = page.locator('#screen-profile .menu-item');
-        await expect(menuItems).toHaveCount(5);
+        await expect(menuItems).toHaveCount(6);
     });
 
     test('stats screen shows stat sections', async ({ page }) => {
