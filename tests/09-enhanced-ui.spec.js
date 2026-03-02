@@ -106,7 +106,7 @@ test.describe('Enhanced UI Features', () => {
         await expect(months).toHaveCount(12);
     });
 
-    test('awards challenges tab shows 8 achievements', async ({ page }) => {
+    test('awards challenges tab shows 20 achievements', async ({ page }) => {
         await navigateToScreen(page, 'profile');
         await page.click('#screen-profile .menu-item[data-navigate="awards"]');
 
@@ -114,7 +114,7 @@ test.describe('Enhanced UI Features', () => {
         await page.click('.awards-tab[data-tab="challenges"]');
 
         const challenges = page.locator('#awards-months-grid .challenge-item');
-        await expect(challenges).toHaveCount(8);
+        await expect(challenges).toHaveCount(20);
     });
 
     test('awards tab switching works', async ({ page }) => {

@@ -2,12 +2,13 @@
  * Awards Screen
  *
  * Displays trophies earned from daily challenges organised by year and month,
- * and a challenges tab for achievement-style progress.
+ * and a challenges tab for achievement-style progress with categories.
  *
  * @module screens/awards
  */
 
-import { loadDailyChallenge, loadStats } from '../utils/storage.js';
+import { loadDailyChallenge } from '../utils/storage.js';
+import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENTS, loadUnlocked } from '../utils/achievements.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -104,7 +105,7 @@ function renderTrophies() {
 }
 
 /**
- * Render the challenges tab content.
+ * Render the challenges tab content with categories and progress bar.
  */
 function renderChallenges() {
     const grid = document.getElementById('awards-months-grid');
@@ -112,57 +113,73 @@ function renderChallenges() {
 
     grid.innerHTML = '';
 
-    const dailyData = loadDailyChallenge();
-    const totalCompleted = dailyData.completed.length;
-    const currentStreak = dailyData.streak;
+    const unlocked = loadUnlocked();
+    const totalCount = ACHIEVEMENTS.length;
+    const unlockedCount = ACHIEVEMENTS.filter(a => !!unlocked[a.id]).length;
 
-    // Compute overall stats across all difficulties
-    const allStats = loadStats();
-    let totalWins = 0;
-    let totalNoMistake = 0;
-    let bestOverallStreak = 0;
-    for (const diff of Object.values(allStats)) {
-        totalWins += diff.gamesWon || 0;
-        totalNoMistake += diff.noMistakeWins || 0;
-        if ((diff.bestStreak || 0) > bestOverallStreak) {
-            bestOverallStreak = diff.bestStreak;
+    // --- Progress bar ---
+    const progressEl = document.createElement('div');
+    progressEl.className = 'achievements-progress';
+
+    const progressLabel = document.createElement('span');
+    progressLabel.className = 'achievements-progress-label';
+    progressLabel.textContent = `${unlockedCount}/${totalCount} 달성`;
+
+    const progressBarOuter = document.createElement('div');
+    progressBarOuter.className = 'achievements-progress-bar';
+
+    const progressBarFill = document.createElement('div');
+    progressBarFill.className = 'achievements-progress-fill';
+    progressBarFill.style.width = `${totalCount > 0 ? (unlockedCount / totalCount * 100) : 0}%`;
+
+    progressBarOuter.appendChild(progressBarFill);
+    progressEl.appendChild(progressLabel);
+    progressEl.appendChild(progressBarOuter);
+    grid.appendChild(progressEl);
+
+    // --- Categories ---
+    for (const cat of ACHIEVEMENT_CATEGORIES) {
+        const catAchievements = ACHIEVEMENTS.filter(a => a.category === cat.key);
+        if (catAchievements.length === 0) continue;
+
+        // Category header
+        const header = document.createElement('div');
+        header.className = 'achievements-category-header';
+        header.textContent = cat.label;
+        grid.appendChild(header);
+
+        // Achievement items grid
+        const itemsGrid = document.createElement('div');
+        itemsGrid.className = 'achievements-items-grid';
+
+        for (const ach of catAchievements) {
+            const isUnlocked = !!unlocked[ach.id];
+
+            const item = document.createElement('div');
+            item.className = 'award-month challenge-item';
+            if (isUnlocked) item.classList.add('achieved');
+
+            const icon = document.createElement('span');
+            icon.className = 'award-month-icon';
+            icon.textContent = ach.icon;
+
+            const title = document.createElement('span');
+            title.className = 'award-month-label';
+            title.textContent = ach.title;
+
+            const desc = document.createElement('span');
+            desc.className = 'award-month-count';
+            desc.style.fontSize = '0.65rem';
+            desc.textContent = isUnlocked ? '\u2705 달성' : ach.desc;
+
+            item.appendChild(icon);
+            item.appendChild(title);
+            item.appendChild(desc);
+            itemsGrid.appendChild(item);
         }
+
+        grid.appendChild(itemsGrid);
     }
-
-    const achievements = [
-        { icon: '\uD83C\uDF1F', title: '첫 도전', desc: '일일 도전 1회 완료', done: totalCompleted >= 1 },
-        { icon: '\u2694\uFE0F', title: '주간 전사', desc: '일일 도전 7회 완료', done: totalCompleted >= 7 },
-        { icon: '\uD83D\uDC51', title: '월간 마스터', desc: '일일 도전 30회 완료', done: totalCompleted >= 30 },
-        { icon: '\uD83D\uDD25', title: '연승 3일', desc: '3일 연속 도전 완료', done: currentStreak >= 3 },
-        { icon: '\u26A1', title: '연승 7일', desc: '7일 연속 도전 완료', done: currentStreak >= 7 },
-        { icon: '\uD83C\uDF0B', title: '연승 30일', desc: '30일 연속 도전 완료', done: currentStreak >= 30 },
-        { icon: '\uD83C\uDFC5', title: '10승 달성', desc: '총 10번 승리', done: totalWins >= 10 },
-        { icon: '\uD83D\uDCAF', title: '완벽주의자', desc: '실수 없이 5번 승리', done: totalNoMistake >= 5 },
-    ];
-
-    achievements.forEach((ach) => {
-        const item = document.createElement('div');
-        item.className = 'award-month challenge-item';
-        if (ach.done) item.classList.add('achieved');
-
-        const icon = document.createElement('span');
-        icon.className = 'award-month-icon';
-        icon.textContent = ach.icon;
-
-        const title = document.createElement('span');
-        title.className = 'award-month-label';
-        title.textContent = ach.title;
-
-        const desc = document.createElement('span');
-        desc.className = 'award-month-count';
-        desc.style.fontSize = '0.65rem';
-        desc.textContent = ach.done ? '\u2705 달성' : ach.desc;
-
-        item.appendChild(icon);
-        item.appendChild(title);
-        item.appendChild(desc);
-        grid.appendChild(item);
-    });
 }
 
 /**

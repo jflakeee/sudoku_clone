@@ -993,6 +993,57 @@ body[data-grid-size="16"] .num-btn {
   opacity: 1;
 }
 
+/* Achievements progress bar */
+.achievements-progress {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0 var(--spacing-md);
+}
+
+.achievements-progress-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.achievements-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--cell-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.achievements-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  transition: width 500ms ease;
+}
+
+/* Achievements category header */
+.achievements-category-header {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--spacing-sm) 0 var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+/* Achievements items grid (within each category) */
+.achievements-items-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md);
+}
+
 /* Challenge achievements */
 .award-month.challenge-item {
   text-align: center;

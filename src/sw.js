@@ -2,7 +2,7 @@
  * Service Worker - Cache-first strategy for offline support
  */
 
-const CACHE_NAME = 'sudoku-v17';
+const CACHE_NAME = 'sudoku-v18';
 
 const PRECACHE_URLS = [
   './',
@@ -46,6 +46,7 @@ const PRECACHE_URLS = [
   './js/screens/history.js',
   './js/screens/print.js',
   './js/utils/export.js',
+  './js/utils/achievements.js',
   './js/core/puzzle-worker.js',
   './css/print.css',
 ];

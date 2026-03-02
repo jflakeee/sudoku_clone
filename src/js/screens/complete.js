@@ -10,6 +10,7 @@
 import { loadStats, saveStats, clearGame, loadDailyChallenge, saveDailyChallenge, checkAndResetHighScores, saveGameHistory } from '../utils/storage.js';
 import { createConfetti, animateScoreCountUp } from '../ui/animations.js';
 import { calculateTimeAttackBonus } from '../core/scorer.js';
+import { checkAchievements } from '../utils/achievements.js';
 
 // ---------------------------------------------------------------------------
 // Difficulty label map
@@ -190,6 +191,12 @@ function onShow(params) {
     // --- Clear saved game ---
     clearGame();
 
+    // --- Achievement check ---
+    const { newlyUnlocked } = checkAchievements();
+    if (newlyUnlocked.length > 0) {
+        showAchievementToast(newlyUnlocked[0]);
+    }
+
     // --- Confetti (skip on time-attack failure) ---
     if (confettiArea) {
         confettiArea.innerHTML = '';
@@ -197,6 +204,41 @@ function onShow(params) {
             createConfetti(confettiArea, 50);
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Achievement toast
+// ---------------------------------------------------------------------------
+
+/**
+ * Show an achievement toast notification at the top of the screen.
+ *
+ * @param {{ icon: string, title: string, desc: string }} achievement
+ */
+function showAchievementToast(achievement) {
+    const toast = document.getElementById('achievement-toast');
+    if (!toast) return;
+
+    const iconEl = toast.querySelector('.achievement-toast-icon');
+    const titleEl = toast.querySelector('.achievement-toast-title');
+    const descEl = toast.querySelector('.achievement-toast-desc');
+
+    if (iconEl) iconEl.textContent = achievement.icon;
+    if (titleEl) titleEl.textContent = achievement.title;
+    if (descEl) descEl.textContent = '업적 달성!';
+
+    toast.style.display = '';
+    toast.classList.remove('hide');
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => {
+            toast.style.display = 'none';
+            toast.classList.remove('hide');
+        }, 400);
+    }, 3000);
 }
 
 // ---------------------------------------------------------------------------

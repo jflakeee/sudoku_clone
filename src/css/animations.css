@@ -320,6 +320,82 @@
     color: var(--text-error, #f44336);
 }
 
+/* --- Achievement Toast --- */
+@keyframes toastSlideIn {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+}
+
+.achievement-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-white);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-lg);
+  padding: 12px 20px;
+  box-shadow: 0 4px 20px rgba(41, 121, 255, 0.25);
+  max-width: 320px;
+  pointer-events: none;
+}
+
+body.dark-mode .achievement-toast {
+  background: var(--bg-dark, #1e1e30);
+}
+
+.achievement-toast.show {
+  animation: toastSlideIn 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.achievement-toast.hide {
+  animation: toastSlideOut 400ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+.achievement-toast-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.achievement-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.achievement-toast-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.achievement-toast-desc {
+  font-size: 0.75rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
 /* --- Reduce Motion Preference --- */
 @media (prefers-reduced-motion: reduce) {
   *,
