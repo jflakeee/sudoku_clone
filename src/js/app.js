@@ -316,6 +316,9 @@ function init() {
         if (meta) meta.setAttribute('content', '#1E1E30');
     }
 
+    // Apply saved theme
+    document.body.setAttribute('data-theme', app.settings.theme || 'default');
+
     try {
         app.sound = new SoundManager(app.settings);
     } catch {

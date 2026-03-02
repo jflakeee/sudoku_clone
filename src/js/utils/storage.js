@@ -61,6 +61,7 @@ function getDefaultSettings() {
         numberFirst: false,
         mistakeLimit: true,
         darkMode: false,
+        theme: 'default',
     };
 }
 

@@ -1,0 +1,181 @@
+/* ============================================
+   themes.css - Color Theme Overrides
+   Each theme overrides 11 CSS variables in both
+   light and dark modes. Default theme uses main.css as-is.
+   ============================================ */
+
+/* --- Ocean Theme (Light) --- */
+body[data-theme="ocean"] {
+  --primary: #0097A7;
+  --primary-light: #26C6DA;
+  --primary-dark: #00838F;
+  --text-input: #0097A7;
+  --bg-main: #E0F7FA;
+  --cell-selected: #B2EBF2;
+  --cell-highlight: #E0F7FA;
+  --cell-same-number: #80DEEA;
+  --highlight-same: rgba(0, 151, 167, 0.12);
+  --complete-gradient-start: #0097A7;
+  --complete-gradient-end: #26C6DA;
+}
+
+/* --- Ocean Theme (Dark) --- */
+body.dark-mode[data-theme="ocean"] {
+  --primary: #26C6DA;
+  --primary-light: #4DD0E1;
+  --primary-dark: #0097A7;
+  --text-input: #4DD0E1;
+  --cell-selected: rgba(38, 198, 218, 0.3);
+  --cell-highlight: rgba(38, 198, 218, 0.1);
+  --cell-same-number: rgba(38, 198, 218, 0.2);
+  --highlight-same: rgba(38, 198, 218, 0.12);
+  --complete-gradient-start: #00838F;
+  --complete-gradient-end: #26C6DA;
+}
+
+/* --- Forest Theme (Light) --- */
+body[data-theme="forest"] {
+  --primary: #43A047;
+  --primary-light: #66BB6A;
+  --primary-dark: #2E7D32;
+  --text-input: #43A047;
+  --bg-main: #E8F5E9;
+  --cell-selected: #C8E6C9;
+  --cell-highlight: #E8F5E9;
+  --cell-same-number: #A5D6A7;
+  --highlight-same: rgba(67, 160, 71, 0.12);
+  --complete-gradient-start: #43A047;
+  --complete-gradient-end: #66BB6A;
+}
+
+/* --- Forest Theme (Dark) --- */
+body.dark-mode[data-theme="forest"] {
+  --primary: #66BB6A;
+  --primary-light: #81C784;
+  --primary-dark: #43A047;
+  --text-input: #81C784;
+  --cell-selected: rgba(102, 187, 106, 0.3);
+  --cell-highlight: rgba(102, 187, 106, 0.1);
+  --cell-same-number: rgba(102, 187, 106, 0.2);
+  --highlight-same: rgba(102, 187, 106, 0.12);
+  --complete-gradient-start: #2E7D32;
+  --complete-gradient-end: #66BB6A;
+}
+
+/* --- Sunset Theme (Light) --- */
+body[data-theme="sunset"] {
+  --primary: #FF6D00;
+  --primary-light: #FFA040;
+  --primary-dark: #E65100;
+  --text-input: #FF6D00;
+  --bg-main: #FFF3E0;
+  --cell-selected: #FFE0B2;
+  --cell-highlight: #FFF3E0;
+  --cell-same-number: #FFCC80;
+  --highlight-same: rgba(255, 109, 0, 0.12);
+  --complete-gradient-start: #FF6D00;
+  --complete-gradient-end: #FFA040;
+}
+
+/* --- Sunset Theme (Dark) --- */
+body.dark-mode[data-theme="sunset"] {
+  --primary: #FFA040;
+  --primary-light: #FFB74D;
+  --primary-dark: #FF6D00;
+  --text-input: #FFB74D;
+  --cell-selected: rgba(255, 160, 64, 0.3);
+  --cell-highlight: rgba(255, 160, 64, 0.1);
+  --cell-same-number: rgba(255, 160, 64, 0.2);
+  --highlight-same: rgba(255, 160, 64, 0.12);
+  --complete-gradient-start: #E65100;
+  --complete-gradient-end: #FFA040;
+}
+
+/* --- Lavender Theme (Light) --- */
+body[data-theme="lavender"] {
+  --primary: #7E57C2;
+  --primary-light: #B388FF;
+  --primary-dark: #5E35B1;
+  --text-input: #7E57C2;
+  --bg-main: #EDE7F6;
+  --cell-selected: #D1C4E9;
+  --cell-highlight: #EDE7F6;
+  --cell-same-number: #B39DDB;
+  --highlight-same: rgba(126, 87, 194, 0.12);
+  --complete-gradient-start: #7E57C2;
+  --complete-gradient-end: #B388FF;
+}
+
+/* --- Lavender Theme (Dark) --- */
+body.dark-mode[data-theme="lavender"] {
+  --primary: #B388FF;
+  --primary-light: #CE93D8;
+  --primary-dark: #7E57C2;
+  --text-input: #CE93D8;
+  --cell-selected: rgba(179, 136, 255, 0.3);
+  --cell-highlight: rgba(179, 136, 255, 0.1);
+  --cell-same-number: rgba(179, 136, 255, 0.2);
+  --highlight-same: rgba(179, 136, 255, 0.12);
+  --complete-gradient-start: #5E35B1;
+  --complete-gradient-end: #B388FF;
+}
+
+/* --- Rose Theme (Light) --- */
+body[data-theme="rose"] {
+  --primary: #E91E63;
+  --primary-light: #F48FB1;
+  --primary-dark: #C2185B;
+  --text-input: #E91E63;
+  --bg-main: #FCE4EC;
+  --cell-selected: #F8BBD0;
+  --cell-highlight: #FCE4EC;
+  --cell-same-number: #F48FB1;
+  --highlight-same: rgba(233, 30, 99, 0.12);
+  --complete-gradient-start: #E91E63;
+  --complete-gradient-end: #F48FB1;
+}
+
+/* --- Rose Theme (Dark) --- */
+body.dark-mode[data-theme="rose"] {
+  --primary: #F48FB1;
+  --primary-light: #F8BBD0;
+  --primary-dark: #E91E63;
+  --text-input: #F8BBD0;
+  --cell-selected: rgba(244, 143, 177, 0.3);
+  --cell-highlight: rgba(244, 143, 177, 0.1);
+  --cell-same-number: rgba(244, 143, 177, 0.2);
+  --highlight-same: rgba(244, 143, 177, 0.12);
+  --complete-gradient-start: #C2185B;
+  --complete-gradient-end: #F48FB1;
+}
+
+/* --- Theme Picker --- */
+.theme-picker {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.theme-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease;
+  flex-shrink: 0;
+}
+
+.theme-swatch:hover {
+  transform: scale(1.1);
+}
+
+.theme-swatch:active {
+  transform: scale(0.95);
+}
+
+.theme-swatch.active {
+  border-color: var(--text-primary);
+  transform: scale(1.15);
+}
