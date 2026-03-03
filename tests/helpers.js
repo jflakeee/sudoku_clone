@@ -36,7 +36,7 @@ async function navigateToScreen(page, screenName) {
  * @param {number} [options.boardSize] - board size (4, 6, 9, 12, 16)
  */
 async function startNewGame(page, difficulty = 'easy', options = {}) {
-    const { mode = 'classic', duration, boardSize } = options;
+    const { mode = 'classic', duration, boardSize, variant } = options;
 
     await page.click('.btn-new-game');
     await page.waitForSelector('#screen-mode-select.active');
@@ -57,6 +57,11 @@ async function startNewGame(page, difficulty = 'easy', options = {}) {
         if (await sizeBtn.isVisible()) {
             await sizeBtn.click();
         }
+    }
+
+    // Select variant if not standard
+    if (variant && variant !== 'standard') {
+        await page.click(`.variant-option[data-variant="${variant}"]`);
     }
 
     await page.click('[data-action="select-mode"]');
