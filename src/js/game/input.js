@@ -209,7 +209,8 @@ export class InputHandler {
             this._board.notes,
             this._board.boardSize,
             this._board.blockSize,
-            this._settings?.smartHints ?? true
+            this._settings?.smartHints ?? true,
+            this._board.variant || 'standard'
         );
 
         if (!hint) return;

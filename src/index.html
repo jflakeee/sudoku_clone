@@ -108,6 +108,19 @@
           <button class="size-option" data-size="16">16×16</button>
         </div>
       </div>
+      <div class="mode-section variant-section">
+        <h3 class="mode-section-title">변형 규칙</h3>
+        <div class="variant-options">
+          <button class="variant-option active" data-variant="standard">
+            <span class="mode-name">기본</span>
+            <span class="mode-desc">행·열·블록</span>
+          </button>
+          <button class="variant-option" data-variant="diagonal">
+            <span class="mode-name">대각선</span>
+            <span class="mode-desc">+ 대각선 규칙</span>
+          </button>
+        </div>
+      </div>
       <div class="mode-section print-count-section" style="display:none;">
         <h3 class="mode-section-title">출력 갯수</h3>
         <div class="print-count-grid">
@@ -147,6 +160,10 @@
       <div class="info-difficulty">
         <span class="info-label">난이도</span>
         <span class="info-value difficulty-value">쉬움</span>
+      </div>
+      <div class="info-variant" style="display:none;">
+        <span class="info-label">변형</span>
+        <span class="info-value variant-value">대각선</span>
       </div>
       <div class="info-mistakes">
         <span class="info-label">실수</span>

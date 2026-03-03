@@ -100,6 +100,9 @@ export class Board {
 
         /** @type {number[][]|null} Snapshot of the initial puzzle (before player input). */
         this._initialPuzzle = null;
+
+        /** @type {string} Game variant ('standard' or 'diagonal'). */
+        this.variant = 'standard';
     }
 
     // -----------------------------------------------------------------------
@@ -122,6 +125,8 @@ export class Board {
             this.blockSize = getBlockSize(this.boardSize);
         }
 
+        this.variant = options.variant || 'standard';
+
         // Generate the puzzle ---------------------------------------------------
         // For daily challenges we seed Math.random via a temporary override so
         // that the generator produces the same board for every player on a given
@@ -136,12 +141,12 @@ export class Board {
             const origRandom = Math.random;
             Math.random = rng;
             try {
-                puzzle = generatePuzzle(difficulty, this.boardSize);
+                puzzle = generatePuzzle(difficulty, this.boardSize, null, this.variant);
             } finally {
                 Math.random = origRandom;
             }
         } else {
-            puzzle = generatePuzzle(difficulty, this.boardSize);
+            puzzle = generatePuzzle(difficulty, this.boardSize, null, this.variant);
         }
 
         // Reset state -----------------------------------------------------------
@@ -157,7 +162,7 @@ export class Board {
         this.mode = mode;
         this._initialPuzzle = this._board.map(r => [...r]);
 
-        this.notes = new Notes(this.boardSize, this.blockSize);
+        this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
         this.history = new History();
         this.timer.reset();
         this.timer.start();
@@ -173,6 +178,7 @@ export class Board {
 
         this.boardSize = savedState.boardSize || 9;
         this.blockSize = getBlockSize(this.boardSize);
+        this.variant = savedState.variant || 'standard';
 
         this._board = savedState.board || Board._emptyGrid(this.boardSize);
         this._solution = savedState.solution || Board._emptyGrid(this.boardSize);
@@ -187,7 +193,7 @@ export class Board {
         this.mode = savedState.mode || 'classic';
 
         // Notes
-        this.notes = new Notes(this.boardSize, this.blockSize);
+        this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
         if (savedState.notes) {
             this.notes.fromJSON(savedState.notes);
         }
@@ -229,6 +235,7 @@ export class Board {
             gameOver: this._gameOver,
             mode: this.mode,
             boardSize: this.boardSize,
+            variant: this.variant,
         };
     }
 
@@ -306,7 +313,7 @@ export class Board {
         // Get conflicts for visual feedback
         const conflicts = checkConflicts(
             this._board, row, col, num,
-            this.boardSize, this.blockSize
+            this.boardSize, this.blockSize, this.variant
         );
 
         let score = 0;
@@ -571,6 +578,8 @@ export class Board {
             this.blockSize = getBlockSize(this.boardSize);
         }
 
+        this.variant = options.variant || 'standard';
+
         this._board = puzzle.map(r => [...r]);
         this._solution = solution.map(r => [...r]);
         this._given = given.map(r => [...r]);
@@ -583,7 +592,7 @@ export class Board {
         this._gameOver = false;
         this.mode = mode;
 
-        this.notes = new Notes(this.boardSize, this.blockSize);
+        this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
         this.history = new History();
         this.timer.reset();
         this.timer.start();
@@ -609,6 +618,8 @@ export class Board {
             this.blockSize = getBlockSize(this.boardSize);
         }
 
+        this.variant = options.variant || 'standard';
+
         return new Promise((resolve, reject) => {
             const worker = new Worker('./js/core/puzzle-worker.js');
 
@@ -627,7 +638,7 @@ export class Board {
                     this._gameOver = false;
                     this.mode = mode;
                     this._initialPuzzle = this._board.map(r => [...r]);
-                    this.notes = new Notes(this.boardSize, this.blockSize);
+                    this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
                     this.history = new History();
                     this.timer.reset();
                     this.timer.start();
@@ -642,7 +653,7 @@ export class Board {
                 reject(err);
             };
 
-            worker.postMessage({ difficulty, boardSize: this.boardSize });
+            worker.postMessage({ difficulty, boardSize: this.boardSize, variant: this.variant });
         });
     }
 

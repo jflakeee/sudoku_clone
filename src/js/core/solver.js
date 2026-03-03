@@ -22,7 +22,7 @@ import { getBlockSize } from './board-config.js';
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {boolean} True if the placement is valid
  */
-export function isValid(board, row, col, num, boardSize = 9, blockSize = null) {
+export function isValid(board, row, col, num, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     // Check row
@@ -44,6 +44,20 @@ export function isValid(board, row, col, num, boardSize = 9, blockSize = null) {
         }
     }
 
+    // Check diagonals
+    if (variant === 'diagonal') {
+        if (row === col) {
+            for (let i = 0; i < boardSize; i++) {
+                if (i !== row && board[i][i] === num) return false;
+            }
+        }
+        if (row + col === boardSize - 1) {
+            for (let i = 0; i < boardSize; i++) {
+                if (i !== row && board[i][boardSize - 1 - i] === num) return false;
+            }
+        }
+    }
+
     return true;
 }
 
@@ -57,7 +71,7 @@ export function isValid(board, row, col, num, boardSize = 9, blockSize = null) {
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {Set<number>} Set of valid numbers that can be placed
  */
-export function getCandidates(board, row, col, boardSize = 9, blockSize = null) {
+export function getCandidates(board, row, col, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     const candidates = new Set();
@@ -67,7 +81,7 @@ export function getCandidates(board, row, col, boardSize = 9, blockSize = null) 
     }
 
     for (let num = 1; num <= boardSize; num++) {
-        if (isValid(board, row, col, num, boardSize, blockSize)) {
+        if (isValid(board, row, col, num, boardSize, blockSize, variant)) {
             candidates.add(num);
         }
     }
@@ -85,7 +99,7 @@ export function getCandidates(board, row, col, boardSize = 9, blockSize = null) 
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {{row: number, col: number} | null} Position of the best empty cell, or null if none
  */
-function findBestEmptyCell(board, boardSize = 9, blockSize = null) {
+function findBestEmptyCell(board, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     let bestCell = null;
@@ -94,7 +108,7 @@ function findBestEmptyCell(board, boardSize = 9, blockSize = null) {
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
             if (board[r][c] === 0) {
-                const count = getCandidates(board, r, c, boardSize, blockSize).size;
+                const count = getCandidates(board, r, c, boardSize, blockSize, variant).size;
                 if (count < minCandidates) {
                     minCandidates = count;
                     bestCell = { row: r, col: c };
@@ -117,13 +131,13 @@ function findBestEmptyCell(board, boardSize = 9, blockSize = null) {
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {number[][] | null} Solved board, or null if no solution exists
  */
-export function solve(board, boardSize = 9, blockSize = null) {
+export function solve(board, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     // Deep copy the board so we don't mutate the original
     const copy = board.map(row => [...row]);
 
-    if (solveInPlace(copy, boardSize, blockSize)) {
+    if (solveInPlace(copy, boardSize, blockSize, variant)) {
         return copy;
     }
 
@@ -138,21 +152,21 @@ export function solve(board, boardSize = 9, blockSize = null) {
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {boolean} True if the board was solved successfully
  */
-function solveInPlace(board, boardSize = 9, blockSize = null) {
+function solveInPlace(board, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
-    const cell = findBestEmptyCell(board, boardSize, blockSize);
+    const cell = findBestEmptyCell(board, boardSize, blockSize, variant);
 
     // No empty cell means the puzzle is complete
     if (!cell) return true;
 
     const { row, col } = cell;
-    const candidates = getCandidates(board, row, col, boardSize, blockSize);
+    const candidates = getCandidates(board, row, col, boardSize, blockSize, variant);
 
     for (const num of candidates) {
         board[row][col] = num;
 
-        if (solveInPlace(board, boardSize, blockSize)) {
+        if (solveInPlace(board, boardSize, blockSize, variant)) {
             return true;
         }
 
@@ -173,14 +187,14 @@ function solveInPlace(board, boardSize = 9, blockSize = null) {
  * @param {number} [limit=2] - Stop counting once this many solutions are found
  * @returns {number} Number of solutions found (capped at `limit`)
  */
-export function countSolutions(board, boardSize = 9, blockSize = null, limit = 2) {
+export function countSolutions(board, boardSize = 9, blockSize = null, limit = 2, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     // Deep copy to avoid mutating the original
     const copy = board.map(row => [...row]);
     const counter = { count: 0 };
 
-    countSolutionsRecursive(copy, limit, counter, boardSize, blockSize);
+    countSolutionsRecursive(copy, limit, counter, boardSize, blockSize, variant);
 
     return counter.count;
 }
@@ -194,10 +208,10 @@ export function countSolutions(board, boardSize = 9, blockSize = null, limit = 2
  * @param {number} boardSize - Board dimension
  * @param {{rows: number, cols: number}} blockSize - Block dimensions
  */
-function countSolutionsRecursive(board, limit, counter, boardSize, blockSize) {
+function countSolutionsRecursive(board, limit, counter, boardSize, blockSize, variant = 'standard') {
     if (counter.count >= limit) return;
 
-    const cell = findBestEmptyCell(board, boardSize, blockSize);
+    const cell = findBestEmptyCell(board, boardSize, blockSize, variant);
 
     // No empty cell — we found a complete valid solution
     if (!cell) {
@@ -206,13 +220,13 @@ function countSolutionsRecursive(board, limit, counter, boardSize, blockSize) {
     }
 
     const { row, col } = cell;
-    const candidates = getCandidates(board, row, col, boardSize, blockSize);
+    const candidates = getCandidates(board, row, col, boardSize, blockSize, variant);
 
     for (const num of candidates) {
         if (counter.count >= limit) return;
 
         board[row][col] = num;
-        countSolutionsRecursive(board, limit, counter, boardSize, blockSize);
+        countSolutionsRecursive(board, limit, counter, boardSize, blockSize, variant);
         board[row][col] = 0;
     }
 }

@@ -76,7 +76,7 @@ function createEmptyBoard(boardSize = 9) {
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @returns {number[][]} A fully filled valid board
  */
-function generateCompleteBoard(boardSize = 9, blockSize = null) {
+function generateCompleteBoard(boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     const board = createEmptyBoard(boardSize);
@@ -98,7 +98,7 @@ function generateCompleteBoard(boardSize = 9, blockSize = null) {
         const nums = shuffle(Array.from({ length: boardSize }, (_, i) => i + 1));
 
         for (const num of nums) {
-            if (isValid(board, row, col, num, boardSize, blockSize)) {
+            if (isValid(board, row, col, num, boardSize, blockSize, variant)) {
                 board[row][col] = num;
                 if (fill(pos + 1)) return true;
                 board[row][col] = 0;
@@ -123,7 +123,7 @@ function generateCompleteBoard(boardSize = 9, blockSize = null) {
  * @returns {number} Actual number of cells removed (may be less than target
  *                   if uniqueness can't be maintained)
  */
-function removeCells(board, cellsToRemove, boardSize = 9, blockSize = null) {
+function removeCells(board, cellsToRemove, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     const totalCells = boardSize * boardSize;
@@ -147,7 +147,7 @@ function removeCells(board, cellsToRemove, boardSize = 9, blockSize = null) {
         board[row][col] = 0;
 
         // Verify that the puzzle still has exactly one solution
-        if (countSolutions(board, boardSize, blockSize, 2) !== 1) {
+        if (countSolutions(board, boardSize, blockSize, 2, variant) !== 1) {
             // Removal would create multiple solutions — put it back
             board[row][col] = backup;
             continue;
@@ -173,7 +173,7 @@ function removeCells(board, cellsToRemove, boardSize = 9, blockSize = null) {
  * }} Puzzle data
  * @throws {Error} If an invalid difficulty string is provided
  */
-export function generatePuzzle(difficulty, boardSize = 9, dailyDate = null) {
+export function generatePuzzle(difficulty, boardSize = 9, dailyDate = null, variant = 'standard') {
     const blockSize = getBlockSize(boardSize);
 
     // Get range from centralized config; fall back to local 9x9 ranges
@@ -195,11 +195,11 @@ export function generatePuzzle(difficulty, boardSize = 9, dailyDate = null) {
     const cellsToRemove = randomInt(minRemove, maxRemove);
 
     // 1. Generate a full valid board
-    const solution = generateCompleteBoard(boardSize, blockSize);
+    const solution = generateCompleteBoard(boardSize, blockSize, variant);
 
     // 2. Deep-copy for the player board, then remove cells
     const board = solution.map(row => [...row]);
-    removeCells(board, cellsToRemove, boardSize, blockSize);
+    removeCells(board, cellsToRemove, boardSize, blockSize, variant);
 
     // 3. Build the "given" mask
     const given = board.map(row => row.map(cell => cell !== 0));
@@ -209,5 +209,6 @@ export function generatePuzzle(difficulty, boardSize = 9, dailyDate = null) {
         solution,
         given,
         difficulty,
+        variant,
     };
 }

@@ -24,12 +24,15 @@ export class Notes {
      * @param {number} [boardSize=9] - Board dimension
      * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
      */
-    constructor(boardSize = 9, blockSize = null) {
+    constructor(boardSize = 9, blockSize = null, variant = 'standard') {
         /** @type {number} */
         this.boardSize = boardSize;
 
         /** @type {{rows: number, cols: number}} */
         this.blockSize = blockSize || getBlockSize(boardSize);
+
+        /** @type {string} */
+        this.variant = variant;
 
         /** @type {Set<number>[][]} Array of Sets. */
         this._grid = Notes._createEmptyGrid(this.boardSize);
@@ -106,6 +109,16 @@ export class Notes {
         for (let r = blockRow; r < blockRow + this.blockSize.rows; r++) {
             for (let c = blockCol; c < blockCol + this.blockSize.cols; c++) {
                 this._grid[r][c].delete(num);
+            }
+        }
+
+        // Same diagonal(s)
+        if (this.variant === 'diagonal') {
+            if (row === col) {
+                for (let i = 0; i < this.boardSize; i++) this._grid[i][i].delete(num);
+            }
+            if (row + col === this.boardSize - 1) {
+                for (let i = 0; i < this.boardSize; i++) this._grid[i][this.boardSize - 1 - i].delete(num);
             }
         }
     }

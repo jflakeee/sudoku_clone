@@ -37,7 +37,7 @@ function getDifficultyRange(boardSize, difficulty) {
 }
 
 // ---- solver inline ----
-function isValid(board, row, col, num, boardSize, blockSize) {
+function isValid(board, row, col, num, boardSize, blockSize, variant) {
     for (let c = 0; c < boardSize; c++) {
         if (board[row][c] === num) return false;
     }
@@ -51,19 +51,32 @@ function isValid(board, row, col, num, boardSize, blockSize) {
             if (board[r][c] === num) return false;
         }
     }
+    if (variant === 'diagonal') {
+        if (row === col) {
+            for (let i = 0; i < boardSize; i++) {
+                if (i !== row && board[i][i] === num) return false;
+            }
+        }
+        if (row + col === boardSize - 1) {
+            for (let i = 0; i < boardSize; i++) {
+                if (i !== row && board[i][boardSize - 1 - i] === num) return false;
+            }
+        }
+    }
     return true;
 }
 
-function getCandidates(board, row, col, boardSize, blockSize) {
+function getCandidates(board, row, col, boardSize, blockSize, variant) {
     const candidates = new Set();
     if (board[row][col] !== 0) return candidates;
     for (let num = 1; num <= boardSize; num++) {
-        if (isValid(board, row, col, num, boardSize, blockSize)) candidates.add(num);
+        if (isValid(board, row, col, num, boardSize, blockSize, variant)) candidates.add(num);
     }
     return candidates;
 }
 
-function countSolutions(board, boardSize, blockSize, limit = 2) {
+function countSolutions(board, boardSize, blockSize, limit, variant) {
+    if (limit === undefined) limit = 2;
     const copy = board.map(r => [...r]);
     const counter = { count: 0 };
 
@@ -72,7 +85,7 @@ function countSolutions(board, boardSize, blockSize, limit = 2) {
         for (let r = 0; r < boardSize; r++) {
             for (let c = 0; c < boardSize; c++) {
                 if (b[r][c] === 0) {
-                    const cnt = getCandidates(b, r, c, boardSize, blockSize).size;
+                    const cnt = getCandidates(b, r, c, boardSize, blockSize, variant).size;
                     if (cnt < min) { min = cnt; best = { row: r, col: c }; if (cnt === 1) return best; }
                 }
             }
@@ -84,7 +97,7 @@ function countSolutions(board, boardSize, blockSize, limit = 2) {
         if (counter.count >= limit) return;
         const cell = findBest(b);
         if (!cell) { counter.count++; return; }
-        const cands = getCandidates(b, cell.row, cell.col, boardSize, blockSize);
+        const cands = getCandidates(b, cell.row, cell.col, boardSize, blockSize, variant);
         for (const num of cands) {
             if (counter.count >= limit) return;
             b[cell.row][cell.col] = num;
@@ -110,7 +123,7 @@ function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function generatePuzzleWorker(difficulty, boardSize) {
+function generatePuzzleWorker(difficulty, boardSize, variant) {
     const blockSize = getBlockSize(boardSize);
     const range = getDifficultyRange(boardSize, difficulty);
     const [minRemove, maxRemove] = range;
@@ -126,7 +139,7 @@ function generatePuzzleWorker(difficulty, boardSize) {
         const col = pos % boardSize;
         const nums = shuffle(Array.from({ length: boardSize }, (_, i) => i + 1));
         for (const num of nums) {
-            if (isValid(board, row, col, num, boardSize, blockSize)) {
+            if (isValid(board, row, col, num, boardSize, blockSize, variant)) {
                 board[row][col] = num;
                 if (fill(pos + 1)) return true;
                 board[row][col] = 0;
@@ -150,7 +163,7 @@ function generatePuzzleWorker(difficulty, boardSize) {
         const backup = board[row][col];
         if (backup === 0) continue;
         board[row][col] = 0;
-        if (countSolutions(board, boardSize, blockSize, 2) !== 1) {
+        if (countSolutions(board, boardSize, blockSize, 2, variant) !== 1) {
             board[row][col] = backup;
             continue;
         }
@@ -159,14 +172,14 @@ function generatePuzzleWorker(difficulty, boardSize) {
 
     const given = board.map(r => r.map(v => v !== 0));
 
-    return { board, solution, given, difficulty };
+    return { board, solution, given, difficulty, variant };
 }
 
 // ---- Worker message handler ----
 self.onmessage = function(e) {
     try {
-        const { difficulty, boardSize } = e.data;
-        const result = generatePuzzleWorker(difficulty, boardSize);
+        const { difficulty, boardSize, variant } = e.data;
+        const result = generatePuzzleWorker(difficulty, boardSize, variant || 'standard');
         self.postMessage({ success: true, puzzle: result });
     } catch (err) {
         self.postMessage({ success: false, error: err.message });

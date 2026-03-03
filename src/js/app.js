@@ -519,15 +519,17 @@ function init() {
                     // Print mode: generate N puzzles and navigate to print screen
                     const count = params.printCount || 1;
                     const boardSize = params.boardSize || 9;
+                    const variant = params.variant || 'standard';
                     const entries = [];
                     for (let i = 0; i < count; i++) {
-                        const puzzle = generatePuzzle(difficulty, boardSize);
+                        const puzzle = generatePuzzle(difficulty, boardSize, null, variant);
                         entries.push({
                             id: 'print-' + Date.now() + '-' + i,
                             puzzle: puzzle.board,
                             solution: puzzle.solution,
                             boardSize,
                             difficulty,
+                            variant,
                         });
                     }
                     navigate('print', { entries });

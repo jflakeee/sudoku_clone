@@ -50,7 +50,7 @@ import { getBlockSize } from '../core/board-config.js';
  * @param {boolean} [useSmartHints=true] - Whether to use smart hint strategies.
  * @returns {Hint | null} A hint object, or `null` if the board is already complete.
  */
-export function getHint(board, solution, notes, boardSize = 9, blockSize = null, useSmartHints = true) {
+export function getHint(board, solution, notes, boardSize = 9, blockSize = null, useSmartHints = true, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     if (!useSmartHints) {
@@ -69,8 +69,14 @@ export function getHint(board, solution, notes, boardSize = 9, blockSize = null,
     const blockHint = findLastInBlock(board, solution, boardSize, blockSize);
     if (blockHint) return blockHint;
 
+    // 3.5. Last empty cell in a diagonal (diagonal variant only)
+    if (variant === 'diagonal') {
+        const diagHint = findLastInDiagonal(board, solution, boardSize);
+        if (diagHint) return diagHint;
+    }
+
     // 4. Naked single (only one candidate)
-    const nakedHint = findNakedSingle(board, solution, boardSize, blockSize);
+    const nakedHint = findNakedSingle(board, solution, boardSize, blockSize, variant);
     if (nakedHint) return nakedHint;
 
     // 5. Fallback — pick a random empty cell and reveal from solution
@@ -226,14 +232,14 @@ function findLastInBlock(board, solution, boardSize = 9, blockSize = null) {
  * @param {{rows: number, cols: number}} [blockSize=null]
  * @returns {Hint | null}
  */
-function findNakedSingle(board, solution, boardSize = 9, blockSize = null) {
+function findNakedSingle(board, solution, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
             if (board[r][c] !== 0) continue;
 
-            const candidates = getCandidates(board, r, c, boardSize, blockSize);
+            const candidates = getCandidates(board, r, c, boardSize, blockSize, variant);
             if (candidates.size === 1) {
                 const value = [...candidates][0];
                 return {
@@ -245,6 +251,60 @@ function findNakedSingle(board, solution, boardSize = 9, blockSize = null) {
                 };
             }
         }
+    }
+
+    return null;
+}
+
+/**
+ * Scan both diagonals for one that has exactly one empty cell.
+ *
+ * @param {number[][]} board
+ * @param {number[][]} solution
+ * @param {number} [boardSize=9]
+ * @returns {Hint | null}
+ */
+function findLastInDiagonal(board, solution, boardSize = 9) {
+    // Main diagonal (row === col)
+    let emptyR = -1, emptyC = -1, emptyCount = 0;
+    for (let i = 0; i < boardSize; i++) {
+        if (board[i][i] === 0) {
+            emptyR = i;
+            emptyC = i;
+            emptyCount++;
+            if (emptyCount > 1) break;
+        }
+    }
+    if (emptyCount === 1) {
+        const value = solution[emptyR][emptyC];
+        return {
+            type: 'lastInDiagonal',
+            row: emptyR,
+            col: emptyC,
+            value,
+            message: `대각선에 빈 칸이 하나 남았습니다. 정답은 ${value}입니다.`,
+        };
+    }
+
+    // Anti-diagonal (row + col === boardSize - 1)
+    emptyR = -1; emptyC = -1; emptyCount = 0;
+    for (let i = 0; i < boardSize; i++) {
+        if (board[i][boardSize - 1 - i] === 0) {
+            emptyR = i;
+            emptyC = boardSize - 1 - i;
+            emptyCount++;
+            if (emptyCount > 1) break;
+        }
+    }
+    if (emptyCount === 1) {
+        const value = solution[emptyR][emptyC];
+        return {
+            type: 'lastInDiagonal',
+            row: emptyR,
+            col: emptyC,
+            value,
+            message: `대각선에 빈 칸이 하나 남았습니다. 정답은 ${value}입니다.`,
+        };
     }
 
     return null;

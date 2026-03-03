@@ -237,9 +237,13 @@ async function startNewGame(difficulty, dailyDate, mode = 'classic', options = {
 
     // Rebuild UI for the current board size
     const actualSize = _app.board.boardSize || 9;
+    const variant = _app.board.variant || 'standard';
     document.body.dataset.gridSize = String(actualSize);
-    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(actualSize);
-    if (_app.highlightUI) _app.highlightUI._gridSize = actualSize;
+    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(actualSize, variant);
+    if (_app.highlightUI) {
+        _app.highlightUI._gridSize = actualSize;
+        _app.highlightUI._variant = variant;
+    }
     if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(actualSize);
 
     // Setup countdown for time-attack mode
@@ -282,19 +286,24 @@ function startReplayGame(params) {
     const boardSize = params.boardSize || 9;
     const mode = params.mode || 'classic';
 
+    const variant = params.variant || 'standard';
+
     _app.board.newGameFromPuzzle(
         params.puzzle,
         params.solution,
         params.given,
         params.difficulty || 'easy',
         mode,
-        { boardSize, dailyDate: params.dailyDate }
+        { boardSize, dailyDate: params.dailyDate, variant }
     );
 
     // Rebuild UI for the board size
     document.body.dataset.gridSize = String(boardSize);
-    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(boardSize);
-    if (_app.highlightUI) _app.highlightUI._gridSize = boardSize;
+    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(boardSize, variant);
+    if (_app.highlightUI) {
+        _app.highlightUI._gridSize = boardSize;
+        _app.highlightUI._variant = variant;
+    }
     if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(boardSize);
 
     // Setup timer tick callback
@@ -324,9 +333,13 @@ function restoreSavedGame() {
 
     // Rebuild UI for the loaded board size
     const boardSize = _app.board.boardSize || 9;
+    const variant = _app.board.variant || 'standard';
     document.body.dataset.gridSize = String(boardSize);
-    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(boardSize);
-    if (_app.highlightUI) _app.highlightUI._gridSize = boardSize;
+    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(boardSize, variant);
+    if (_app.highlightUI) {
+        _app.highlightUI._gridSize = boardSize;
+        _app.highlightUI._variant = variant;
+    }
     if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(boardSize);
 
     // Setup timer tick callback
@@ -424,6 +437,16 @@ function resetGameUI(difficulty) {
 
     // Reset hint badge
     updateHintBadge();
+
+    // Variant info display
+    const variantEl = screenEl?.querySelector('.info-variant');
+    if (variantEl) {
+        if (_app.board?.variant === 'diagonal') {
+            variantEl.style.display = '';
+        } else {
+            variantEl.style.display = 'none';
+        }
+    }
 
     // Reset number-first lock
     lockedNumber = 0;
@@ -601,6 +624,7 @@ function onGameComplete(detail) {
         isDaily,
         dailyDate: dailyDate || _app.board?.getDailyDate(),
         mode: _app.board?.mode || 'classic',
+        variant: _app.board?.variant || 'standard',
     };
 
     if (_app.board?.mode === 'timeAttack') {

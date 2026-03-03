@@ -24,6 +24,7 @@ export function initModeSelectScreen(app) {
     let selectedMode = 'classic';
     let selectedDuration = 600;
     let selectedBoardSize = 9;
+    let selectedVariant = 'standard';
     let forPrint = false;
     let selectedPrintCount = 1;
 
@@ -32,6 +33,8 @@ export function initModeSelectScreen(app) {
     const timedSection = screen.querySelector('.timed-section');
     const timeOptions = screen.querySelectorAll('.time-option');
     const sizeOptions = screen.querySelectorAll('.size-option');
+    const variantSection = screen.querySelector('.variant-section');
+    const variantOptions = screen.querySelectorAll('.variant-option');
     const nextBtn = screen.querySelector('[data-action="select-mode"]');
     const subTitle = screen.querySelector('.sub-title');
     const printCountSection = screen.querySelector('.print-count-section');
@@ -62,6 +65,14 @@ export function initModeSelectScreen(app) {
         });
     });
 
+    variantOptions.forEach(btn => {
+        btn.addEventListener('click', () => {
+            variantOptions.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedVariant = btn.dataset.variant;
+        });
+    });
+
     countOptions.forEach(btn => {
         btn.addEventListener('click', () => {
             countOptions.forEach(b => b.classList.remove('active'));
@@ -77,6 +88,7 @@ export function initModeSelectScreen(app) {
                 mode: selectedMode,
                 duration: selectedDuration,
                 boardSize: selectedBoardSize,
+                variant: selectedVariant,
                 forPrint,
                 printCount: selectedPrintCount,
             });
@@ -91,6 +103,7 @@ export function initModeSelectScreen(app) {
         selectedMode = 'classic';
         selectedDuration = 600;
         selectedBoardSize = 9;
+        selectedVariant = 'standard';
 
         // Detect print mode from params
         forPrint = !!(detail.params && detail.params.forPrint);
@@ -114,20 +127,27 @@ export function initModeSelectScreen(app) {
             b.classList.toggle('active', parseInt(b.dataset.size, 10) === 9);
         });
 
+        // Reset variant options (activate standard)
+        variantOptions.forEach(b => {
+            b.classList.toggle('active', b.dataset.variant === 'standard');
+        });
+
         // Reset count options (activate 1)
         countOptions.forEach(b => {
             b.classList.toggle('active', parseInt(b.dataset.count, 10) === 1);
         });
 
         if (forPrint) {
-            // Print mode: hide game mode & timed sections, show print count
+            // Print mode: hide game mode, variant & timed sections, show print count
             if (gameModeSection) gameModeSection.style.display = 'none';
             if (timedSection) timedSection.style.display = 'none';
+            if (variantSection) variantSection.style.display = 'none';
             if (printCountSection) printCountSection.style.display = '';
             if (subTitle) subTitle.textContent = '인쇄 설정';
         } else {
-            // Normal mode: show game mode, hide print count
+            // Normal mode: show game mode & variant, hide print count
             if (gameModeSection) gameModeSection.style.display = '';
+            if (variantSection) variantSection.style.display = '';
             if (printCountSection) printCountSection.style.display = 'none';
             if (subTitle) subTitle.textContent = '게임 모드';
         }

@@ -78,12 +78,13 @@ function renderHistoryList() {
             ? '일일도전'
             : MODE_LABELS[entry.mode] || entry.mode;
         const sizeLabel = entry.boardSize ? `${entry.boardSize}×${entry.boardSize}` : '9×9';
+        const variantBadge = entry.variant === 'diagonal' ? ' · <span class="badge-diagonal">대각선</span>' : '';
         const checked = _selectedIds.has(entry.id) ? 'checked' : '';
 
         item.innerHTML = `
             <input type="checkbox" class="history-check" data-history-id="${entry.id}" ${checked}>
             <div class="history-item-info">
-                <div class="history-item-title">${diffLabel} · ${modeLabel}</div>
+                <div class="history-item-title">${diffLabel} · ${modeLabel}${variantBadge}</div>
                 <div class="history-item-meta">${dateStr} · ${sizeLabel} · ${formatTime(entry.time)} · ${(entry.score || 0).toLocaleString()}점</div>
             </div>
             <div class="history-item-actions">
@@ -179,6 +180,7 @@ function handleReplay(entryId) {
         mode: entry.mode || 'classic',
         boardSize: entry.boardSize || 9,
         dailyDate: entry.dailyDate || null,
+        variant: entry.variant || 'standard',
     });
 }
 

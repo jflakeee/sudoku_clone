@@ -113,6 +113,27 @@
   background: var(--cell-selected);
 }
 
+/* Diagonal cells (diagonal variant) */
+.cell.diagonal {
+  background: var(--diagonal-bg);
+}
+
+.cell.diagonal.given {
+  background: var(--given-bg);
+}
+
+.cell.diagonal.highlighted {
+  background: var(--cell-highlight);
+}
+
+.cell.diagonal.selected {
+  background: var(--cell-selected);
+}
+
+.cell.diagonal.same-number {
+  background: var(--cell-same-number);
+}
+
 /* Cell completed (wave animation) */
 .cell.completed {
   background: var(--primary);

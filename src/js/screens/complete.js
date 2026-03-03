@@ -176,6 +176,7 @@ function onShow(params) {
                 difficulty,
                 mode,
                 boardSize: board.boardSize || 9,
+                variant: board.variant || 'standard',
                 score,
                 time,
                 mistakes,

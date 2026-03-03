@@ -23,7 +23,7 @@ export class GridUI {
      * @param {HTMLElement} containerEl - The `.sudoku-grid` container element.
      * @param {number} [gridSize=9] - Board dimension (4, 6, 9, 12, 16).
      */
-    constructor(containerEl, gridSize = 9) {
+    constructor(containerEl, gridSize = 9, variant = 'standard') {
         /** @type {HTMLElement} */
         this._container = containerEl;
 
@@ -32,6 +32,9 @@ export class GridUI {
 
         /** @type {{ rows: number, cols: number }} */
         this._blockSize = getBlockSize(gridSize);
+
+        /** @type {string} */
+        this._variant = variant;
 
         /**
          * Flat lookup: cells[row * gridSize + col] → cell element.
@@ -309,6 +312,11 @@ export class GridUI {
                 if (c === this._gridSize - 1) cell.classList.add('last-col');
                 if (r === this._gridSize - 1) cell.classList.add('last-row');
 
+                // Diagonal cells
+                if (this._variant === 'diagonal') {
+                    if (r === c || r + c === this._gridSize - 1) cell.classList.add('diagonal');
+                }
+
                 // Value element
                 const valueSpan = document.createElement('span');
                 valueSpan.className = 'cell-value';
@@ -360,9 +368,10 @@ export class GridUI {
      *
      * @param {number} gridSize - New board dimension (4, 6, 9, 12, 16).
      */
-    rebuild(gridSize) {
+    rebuild(gridSize, variant) {
         this._gridSize = gridSize;
         this._blockSize = getBlockSize(gridSize);
+        if (variant !== undefined) this._variant = variant;
         this._container.innerHTML = '';
         this._cells = [];
         this._buildGrid();

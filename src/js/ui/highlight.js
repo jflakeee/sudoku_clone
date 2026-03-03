@@ -13,7 +13,7 @@
  * @module ui/highlight
  */
 
-import { getRowCells, getColCells, getBlockCells } from '../core/validator.js';
+import { getRowCells, getColCells, getBlockCells, getDiagonalCells } from '../core/validator.js';
 
 // ---------------------------------------------------------------------------
 // CSS class names
@@ -56,6 +56,9 @@ export class HighlightUI {
 
         /** @type {number} */
         this._gridSize = gridSize;
+
+        /** @type {string} */
+        this._variant = 'standard';
     }
 
     // -----------------------------------------------------------------------
@@ -83,12 +86,16 @@ export class HighlightUI {
             selectedCell.classList.add(CLS_SELECTED);
         }
 
-        // 3. Highlighted: same row, column, and block
+        // 3. Highlighted: same row, column, block, and diagonals
         const relatedCells = [
             ...getRowCells(row, this._gridSize),
             ...getColCells(col, this._gridSize),
             ...getBlockCells(row, col, this._gridSize),
         ];
+
+        if (this._variant === 'diagonal') {
+            relatedCells.push(...getDiagonalCells(row, col, this._gridSize));
+        }
 
         // De-duplicate using a position key set
         const seen = new Set();

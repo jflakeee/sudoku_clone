@@ -65,6 +65,27 @@ export function getBlockCells(row, col, boardSize = 9, blockSize = null) {
 }
 
 /**
+ * Get all cells on the same diagonal(s) as (row, col).
+ * Returns cells from the main diagonal (row===col) and/or anti-diagonal
+ * (row+col===boardSize-1) if the cell lies on them.
+ *
+ * @param {number} row - Row index
+ * @param {number} col - Column index
+ * @param {number} [boardSize=9] - Board dimension
+ * @returns {{row: number, col: number}[]} Array of cell positions
+ */
+export function getDiagonalCells(row, col, boardSize = 9) {
+    const cells = [];
+    if (row === col) {
+        for (let i = 0; i < boardSize; i++) cells.push({ row: i, col: i });
+    }
+    if (row + col === boardSize - 1) {
+        for (let i = 0; i < boardSize; i++) cells.push({ row: i, col: boardSize - 1 - i });
+    }
+    return cells;
+}
+
+/**
  * Find all cells that conflict with placing `num` at (row, col).
  * A conflict means another cell in the same row, column, or block
  * already contains the same number.
@@ -77,9 +98,10 @@ export function getBlockCells(row, col, boardSize = 9, blockSize = null) {
  * @param {number} num - Number to check
  * @param {number} [boardSize=9] - Board dimension
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
+ * @param {string} [variant='standard'] - Game variant ('standard' or 'diagonal')
  * @returns {{row: number, col: number}[]} Array of conflicting cell positions
  */
-export function checkConflicts(board, row, col, num, boardSize = 9, blockSize = null) {
+export function checkConflicts(board, row, col, num, boardSize = 9, blockSize = null, variant = 'standard') {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     if (num < 1 || num > boardSize) return [];
@@ -113,6 +135,16 @@ export function checkConflicts(board, row, col, num, boardSize = 9, blockSize = 
     for (let r = blockRow; r < blockRow + blockSize.rows; r++) {
         for (let c = blockCol; c < blockCol + blockSize.cols; c++) {
             check(r, c);
+        }
+    }
+
+    // Diagonals
+    if (variant === 'diagonal') {
+        if (row === col) {
+            for (let i = 0; i < boardSize; i++) check(i, i);
+        }
+        if (row + col === boardSize - 1) {
+            for (let i = 0; i < boardSize; i++) check(i, boardSize - 1 - i);
         }
     }
 

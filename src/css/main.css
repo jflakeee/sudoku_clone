@@ -85,6 +85,7 @@ a {
 
   /* Misc */
   --given-bg: rgba(0, 0, 0, 0.04);
+  --diagonal-bg: rgba(41, 121, 255, 0.05);
   --error-bg: rgba(229, 57, 53, 0.1);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -150,6 +151,7 @@ body.dark-mode {
   --cell-same-number: rgba(68, 138, 255, 0.2);
 
   --given-bg: rgba(255, 255, 255, 0.06);
+  --diagonal-bg: rgba(68, 138, 255, 0.08);
 
   --grid-border: #555;
   --block-border: #555;
