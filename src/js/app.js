@@ -31,6 +31,8 @@ import { initRankingScreen } from './screens/ranking.js';
 import { initHistoryScreen } from './screens/history.js';
 import { initPrintScreen } from './screens/print.js';
 import { generatePuzzle } from './core/generator.js';
+import { decodePuzzle } from './utils/puzzle-share.js';
+import { setLocale } from './utils/i18n.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -319,6 +321,14 @@ function init() {
     // Apply saved theme
     document.body.setAttribute('data-theme', app.settings.theme || 'default');
 
+    // Apply saved locale
+    setLocale(app.settings.locale || 'ko');
+
+    // Apply high contrast mode from saved settings
+    if (app.settings.highContrast) {
+        document.body.classList.add('high-contrast');
+    }
+
     try {
         app.sound = new SoundManager(app.settings);
     } catch {
@@ -472,6 +482,43 @@ function init() {
             return;
         }
 
+        // Tab / Shift+Tab - move to next/previous empty cell
+        if (key === 'Tab' && app.input && app.board) {
+            e.preventDefault();
+            const boardSize = app.board.boardSize || 9;
+            const sel = app.input.getSelectedCell();
+            let row = sel ? sel.row : 0;
+            let col = sel ? sel.col : -1;
+            const forward = !e.shiftKey;
+            const totalCells = boardSize * boardSize;
+            let startIdx = row * boardSize + col;
+
+            for (let i = 0; i < totalCells; i++) {
+                startIdx = forward ? startIdx + 1 : startIdx - 1;
+                if (startIdx >= totalCells) startIdx = 0;
+                if (startIdx < 0) startIdx = totalCells - 1;
+
+                const r = Math.floor(startIdx / boardSize);
+                const c = startIdx % boardSize;
+                if (app.board.isEmpty(r, c) && !app.board.isGiven(r, c)) {
+                    app.input.selectCell(r, c);
+                    if (app.highlightUI) {
+                        app.highlightUI.highlightSelection(r, c, app.board.getBoard());
+                    }
+                    if (app.numberpadUI) {
+                        app.numberpadUI.highlightNumber(0);
+                    }
+                    // Focus the cell element for screen readers
+                    if (app.gridUI) {
+                        const cellEl = app.gridUI.getCell(r, c);
+                        if (cellEl) cellEl.focus();
+                    }
+                    break;
+                }
+            }
+            return;
+        }
+
         // Escape - deselect
         if (key === 'Escape') {
             e.preventDefault();
@@ -548,6 +595,26 @@ function init() {
         });
     }
 
+    // ----- Check for shared puzzle URL parameter -----
+    const urlParams = new URLSearchParams(window.location.search);
+    const puzzleCode = urlParams.get('puzzle');
+    if (puzzleCode) {
+        const decoded = decodePuzzle(puzzleCode);
+        if (decoded) {
+            // Clean the URL without reload
+            window.history.replaceState({}, '', window.location.pathname);
+            showScreen('main');
+            navigate('game', {
+                sharedPuzzle: decoded,
+                difficulty: 'normal',
+                mode: 'classic',
+                boardSize: decoded.boardSize,
+                variant: decoded.variant,
+            });
+            return;
+        }
+    }
+
     // ----- Initial screen -----
     showScreen('main');
 }
@@ -582,6 +649,7 @@ function handleGlobalAction(action, target) {
         case 'erase':
         case 'notes':
         case 'hint':
+        case 'marking':
             // Handled by screen-specific logic; no global override needed.
             break;
 
@@ -589,6 +657,44 @@ function handleGlobalAction(action, target) {
             break;
     }
 }
+
+// ---------------------------------------------------------------------------
+// PWA Install Prompt
+// ---------------------------------------------------------------------------
+
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const banner = document.getElementById('install-banner');
+    if (banner) banner.style.display = 'flex';
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const installBtn = document.getElementById('btn-install');
+    if (installBtn) {
+        installBtn.addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => {
+                    const banner = document.getElementById('install-banner');
+                    if (banner) banner.style.display = 'none';
+                    deferredPrompt = null;
+                });
+            }
+        });
+    }
+
+    const dismissBtn = document.getElementById('btn-install-dismiss');
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+            const banner = document.getElementById('install-banner');
+            if (banner) banner.style.display = 'none';
+            deferredPrompt = null;
+        });
+    }
+});
 
 // ---------------------------------------------------------------------------
 // Service Worker registration

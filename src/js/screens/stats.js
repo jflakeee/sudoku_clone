@@ -8,7 +8,7 @@
  * @module screens/stats
  */
 
-import { loadStats, saveStats } from '../utils/storage.js';
+import { loadStats, saveStats, loadAggregateStats } from '../utils/storage.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -26,6 +26,15 @@ let _app = null;
 
 /** @type {string} Currently active difficulty tab */
 let _activeDifficulty = 'easy';
+
+/** @type {string} Currently active mode filter */
+let _activeMode = 'classic';
+
+/** @type {string} Currently active size filter */
+let _activeSize = 'all';
+
+/** @type {string} Currently active variant filter */
+let _activeVariant = 'all';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -62,7 +71,7 @@ function formatNumber(n) {
  * Populate the stat values for the currently selected difficulty.
  */
 function renderStats() {
-    const allStats = loadStats();
+    const allStats = loadAggregateStats(_activeMode, _activeSize, _activeVariant);
     const stats = allStats[_activeDifficulty] || allStats.easy || {};
 
     // Games section
@@ -201,24 +210,34 @@ function onResetClick() {
     const confirmed = confirm('이 난이도의 통계를 초기화하시겠습니까?');
     if (!confirmed) return;
 
-    const allStats = loadStats();
-    allStats[_activeDifficulty] = {
-        gamesStarted: 0,
-        gamesWon: 0,
-        noMistakeWins: 0,
-        bestTime: 0,
-        totalTime: 0,
-        currentStreak: 0,
-        bestStreak: 0,
-        highScores: {
-            today: 0,
-            thisWeek: 0,
-            thisMonth: 0,
-            allTime: 0,
-        },
-    };
+    // Reset stats for the current filter combination
+    const sizes = _activeSize === 'all' ? [4, 6, 9, 12, 16] : [Number(_activeSize)];
+    const variants = _activeVariant === 'all'
+        ? ['standard', 'diagonal', 'anti-knight', 'anti-king', 'windoku', 'even-odd']
+        : [_activeVariant];
 
-    saveStats(allStats);
+    for (const sz of sizes) {
+        for (const v of variants) {
+            const allStats = loadStats(_activeMode, sz, v);
+            allStats[_activeDifficulty] = {
+                gamesStarted: 0,
+                gamesWon: 0,
+                noMistakeWins: 0,
+                bestTime: 0,
+                totalTime: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                highScores: {
+                    today: 0,
+                    thisWeek: 0,
+                    thisMonth: 0,
+                    allTime: 0,
+                },
+            };
+            saveStats(allStats, _activeMode, sz, v);
+        }
+    }
+
     renderStats();
 }
 
@@ -234,6 +253,9 @@ function onResetClick() {
 export function initStatsScreen(app) {
     _app = app;
     _activeDifficulty = 'easy';
+    _activeMode = 'classic';
+    _activeSize = 'all';
+    _activeVariant = 'all';
 
     // Tab switching
     const tabsContainer = document.getElementById('stats-tabs');
@@ -245,6 +267,31 @@ export function initStatsScreen(app) {
     const resetBtn = document.querySelector('#screen-stats .btn-reset-stats');
     if (resetBtn) {
         resetBtn.addEventListener('click', onResetClick);
+    }
+
+    // Stats filter dropdowns
+    const modeFilter = document.getElementById('stats-mode-filter');
+    if (modeFilter) {
+        modeFilter.addEventListener('change', () => {
+            _activeMode = modeFilter.value;
+            renderStats();
+        });
+    }
+
+    const sizeFilter = document.getElementById('stats-size-filter');
+    if (sizeFilter) {
+        sizeFilter.addEventListener('change', () => {
+            _activeSize = sizeFilter.value;
+            renderStats();
+        });
+    }
+
+    const variantFilter = document.getElementById('stats-variant-filter');
+    if (variantFilter) {
+        variantFilter.addEventListener('change', () => {
+            _activeVariant = variantFilter.value;
+            renderStats();
+        });
     }
 
     // Re-render stats whenever the screen becomes visible

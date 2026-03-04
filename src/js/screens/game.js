@@ -9,6 +9,7 @@
 
 import { loadGame, saveGame, clearGame, loadStats, saveStats } from '../utils/storage.js';
 import { animateCompletionWave } from '../ui/animations.js';
+import { getCandidates } from '../core/solver.js';
 
 // ---------------------------------------------------------------------------
 // Difficulty label map
@@ -49,6 +50,12 @@ let isDaily = false;
 
 /** @type {string|null} Daily challenge date string (YYYY-MM-DD). */
 let dailyDate = null;
+
+/** @type {boolean} Whether the current game is a weekly challenge. */
+let isWeekly = false;
+
+/** @type {number} Weekly challenge week number. */
+let weekNumber = 0;
 
 /** @type {object | null} Reference to global app object. */
 let _app = null;
@@ -123,6 +130,28 @@ export function initGameScreen(app) {
     document.addEventListener('mistake', (e) => onMistake(e.detail));
     document.addEventListener('game-complete', (e) => onGameComplete(e.detail));
     document.addEventListener('hint-used', (e) => onHintUsed(e.detail));
+    document.addEventListener('auto-notes-undone', () => onAutoNotesUndone());
+    document.addEventListener('cell-color-changed', (e) => onCellColorChanged(e.detail));
+
+    // --- Color palette event handling ---
+    const colorPalette = document.getElementById('color-palette');
+    if (colorPalette) {
+        colorPalette.addEventListener('click', (e) => {
+            const swatch = /** @type {HTMLElement} */ (e.target).closest('.color-swatch');
+            if (!swatch) return;
+
+            const colorIdx = parseInt(swatch.getAttribute('data-color'), 10);
+            if (isNaN(colorIdx)) return;
+
+            if (app.input) {
+                app.input.setMarkingColor(colorIdx);
+            }
+
+            // Update active state on swatches
+            colorPalette.querySelectorAll('.color-swatch').forEach(s =>
+                s.classList.toggle('active', parseInt(s.getAttribute('data-color'), 10) === colorIdx));
+        });
+    }
 
     // --- Grid cell selection (forward to InputHandler) ---
     if (app.gridUI) {
@@ -133,6 +162,14 @@ export function initGameScreen(app) {
             if (app.highlightUI) {
                 app.highlightUI.highlightSelection(row, col, app.board.getBoard());
             }
+
+            // Marking mode: apply color to cell on click
+            if (app.input && app.input.isMarkingMode()) {
+                app.input.applyMarking();
+                try { app.sound?.play('tap'); } catch { /* ignore */ }
+                return;
+            }
+
             // Number-first mode: auto-input locked number on cell click
             if (_app.settings.numberFirst && lockedNumber > 0 && app.input) {
                 app.input.inputNumber(lockedNumber);
@@ -191,8 +228,12 @@ function onShow(params) {
 
     isDaily = !!params.daily;
     dailyDate = params.date || null;
+    isWeekly = !!params.isWeekly;
+    weekNumber = params.weekNumber || 0;
 
-    if (params.replay) {
+    if (params.sharedPuzzle) {
+        startSharedGame(params);
+    } else if (params.replay) {
         startReplayGame(params);
     } else if (params.loadSaved) {
         restoreSavedGame();
@@ -243,6 +284,7 @@ async function startNewGame(difficulty, dailyDate, mode = 'classic', options = {
     if (_app.highlightUI) {
         _app.highlightUI._gridSize = actualSize;
         _app.highlightUI._variant = variant;
+        _app.highlightUI._extraData = (variant === 'killer' && _app.board?.getCages()) ? { cages: _app.board.getCages() } : null;
     }
     if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(actualSize);
 
@@ -278,6 +320,51 @@ async function startNewGame(difficulty, dailyDate, mode = 'classic', options = {
 }
 
 /**
+ * Start a game from a shared puzzle (URL or import).
+ *
+ * @param {object} params - Parameters including sharedPuzzle decoded data.
+ */
+function startSharedGame(params) {
+    const { sharedPuzzle } = params;
+    const boardSize = sharedPuzzle.boardSize || 9;
+    const variant = sharedPuzzle.variant || 'standard';
+    const mode = params.mode || 'classic';
+
+    // Convert given from number[][] (0/1) to boolean[][]
+    const givenBool = sharedPuzzle.given.map(row => row.map(v => !!v));
+
+    _app.board.newGameFromPuzzle(
+        sharedPuzzle.puzzle,
+        sharedPuzzle.solution,
+        givenBool,
+        params.difficulty || 'normal',
+        mode,
+        { boardSize, variant }
+    );
+
+    // Rebuild UI for the board size
+    document.body.dataset.gridSize = String(boardSize);
+    if (_app.gridUI?.rebuild) _app.gridUI.rebuild(boardSize, variant);
+    if (_app.highlightUI) {
+        _app.highlightUI._gridSize = boardSize;
+        _app.highlightUI._variant = variant;
+        _app.highlightUI._extraData = (variant === 'killer' && _app.board?.getCages()) ? { cages: _app.board.getCages() } : null;
+    }
+    if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(boardSize);
+
+    // Setup timer tick callback
+    _app.board.timer.onTick((formatted) => {
+        if (timerValueEl && _app.settings.timer) {
+            timerValueEl.textContent = formatted;
+        }
+    });
+
+    // Reset UI
+    resetGameUI(params.difficulty || 'normal');
+    renderFullGrid();
+}
+
+/**
  * Start a replay game from a previously completed puzzle.
  *
  * @param {object} params - Replay parameters (puzzle, solution, given, difficulty, mode, boardSize).
@@ -294,7 +381,7 @@ function startReplayGame(params) {
         params.given,
         params.difficulty || 'easy',
         mode,
-        { boardSize, dailyDate: params.dailyDate, variant }
+        { boardSize, dailyDate: params.dailyDate, variant, evenOddMap: params.evenOddMap, cages: params.cages }
     );
 
     // Rebuild UI for the board size
@@ -303,6 +390,7 @@ function startReplayGame(params) {
     if (_app.highlightUI) {
         _app.highlightUI._gridSize = boardSize;
         _app.highlightUI._variant = variant;
+        _app.highlightUI._extraData = (variant === 'killer' && _app.board?.getCages()) ? { cages: _app.board.getCages() } : null;
     }
     if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(boardSize);
 
@@ -339,6 +427,7 @@ function restoreSavedGame() {
     if (_app.highlightUI) {
         _app.highlightUI._gridSize = boardSize;
         _app.highlightUI._variant = variant;
+        _app.highlightUI._extraData = (variant === 'killer' && _app.board?.getCages()) ? { cages: _app.board.getCages() } : null;
     }
     if (_app.numberpadUI?.rebuild) _app.numberpadUI.rebuild(boardSize);
 
@@ -440,9 +529,15 @@ function resetGameUI(difficulty) {
 
     // Variant info display
     const variantEl = screenEl?.querySelector('.info-variant');
+    const variantValueEl = screenEl?.querySelector('.variant-value');
     if (variantEl) {
-        if (_app.board?.variant === 'diagonal') {
+        const v = _app.board?.variant;
+        if (v && v !== 'standard') {
             variantEl.style.display = '';
+            if (variantValueEl) {
+                const VARIANT_LABELS = { diagonal: '대각선', 'anti-knight': '안티나이트', 'anti-king': '안티킹', 'even-odd': '짝홀', windoku: '윈도쿠', killer: '킬러' };
+                variantValueEl.textContent = VARIANT_LABELS[v] || v;
+            }
         } else {
             variantEl.style.display = 'none';
         }
@@ -453,6 +548,15 @@ function resetGameUI(difficulty) {
     if (_app.numberpadUI) {
         _app.numberpadUI.unlockNumber();
     }
+
+    // Reset marking mode
+    if (_app.toolbarUI) {
+        _app.toolbarUI.setMarkingMode(false);
+    }
+    hideColorPalette();
+
+    // Reset progress bar
+    updateProgressBar();
 }
 
 /**
@@ -461,6 +565,15 @@ function resetGameUI(difficulty) {
 function renderFullGrid() {
     if (_app.gridUI && _app.board) {
         _app.gridUI.renderBoard(_app.board.getBoard(), _app.board.getGiven());
+        _app.gridUI.renderAllColors(_app.board);
+        // Apply even/odd markers if variant is even-odd
+        if (_app.board.variant === 'even-odd' && _app.gridUI.applyEvenOddMap) {
+            _app.gridUI.applyEvenOddMap(_app.board.getEvenOddMap());
+        }
+        // Apply cage rendering for killer variant
+        if (_app.board.variant === 'killer' && _app.gridUI.renderCages) {
+            _app.gridUI.renderCages(_app.board.getCages());
+        }
     }
     if (_app.numberpadUI && _app.board) {
         _app.numberpadUI.updateCounts(_app.board);
@@ -493,6 +606,22 @@ function updateHintBadge() {
 }
 
 /**
+ * Update the progress bar display based on current board state.
+ */
+function updateProgressBar() {
+    if (!_app.board || !screenEl) return;
+    const progress = _app.board.getProgress();
+    const fillEl = screenEl.querySelector('.progress-fill');
+    const barEl = screenEl.querySelector('.info-progress');
+    if (fillEl) {
+        fillEl.style.width = `${progress}%`;
+    }
+    if (barEl) {
+        barEl.setAttribute('aria-valuenow', String(progress));
+    }
+}
+
+/**
  * Increment gamesStarted stat for the given difficulty.
  *
  * @param {string} difficulty
@@ -520,19 +649,26 @@ function onCellUpdated(detail) {
     if (!_app.board) return;
 
     if (_app.gridUI) {
+        const animationsOn = _app.settings?.animations !== false;
+
         // Update the cell display
         if (detail.value !== 0) {
             _app.gridUI.updateCell(detail.row, detail.col, detail.value, detail.state);
-            if (detail.state === 'user-input' || detail.state === 'error') {
-                _app.gridUI.animatePop(detail.row, detail.col);
+            if (animationsOn && (detail.state === 'user-input' || detail.state === 'error')) {
+                _app.gridUI.animateValueBounce(detail.row, detail.col);
             }
-            if (detail.state === 'error') {
+            if (animationsOn && detail.state === 'error') {
                 _app.gridUI.animateError(detail.row, detail.col);
             }
+
+            // Auto-check mistakes: mark cell if wrong
+            applyAutoMistakeCheck(detail.row, detail.col, detail.value, detail.state);
         } else if (detail.notes && detail.notes.length > 0) {
-            _app.gridUI.showNotes(detail.row, detail.col, new Set(detail.notes));
+            _app.gridUI.showNotes(detail.row, detail.col, new Set(detail.notes), animationsOn);
         } else {
             _app.gridUI.clearCell(detail.row, detail.col);
+            // Remove auto-mistake class when cell is cleared
+            removeAutoMistakeClass(detail.row, detail.col);
         }
     }
 
@@ -547,6 +683,9 @@ function onCellUpdated(detail) {
             _app.highlightUI.highlightSelection(sel.row, sel.col, _app.board.getBoard());
         }
     }
+
+    // Update progress bar
+    updateProgressBar();
 
     // Auto-save on each move
     try {
@@ -625,6 +764,8 @@ function onGameComplete(detail) {
         dailyDate: dailyDate || _app.board?.getDailyDate(),
         mode: _app.board?.mode || 'classic',
         variant: _app.board?.variant || 'standard',
+        isWeekly,
+        weekNumber,
     };
 
     if (_app.board?.mode === 'timeAttack') {
@@ -633,7 +774,7 @@ function onGameComplete(detail) {
         completeParams.success = true;
     }
 
-    if (_app.gridUI) {
+    if (_app.gridUI && _app.settings?.animations !== false) {
         animateCompletionWave(_app.gridUI, () => {
             _app.navigate('complete', completeParams);
         });
@@ -679,6 +820,28 @@ function handleToolbarAction(action) {
             const isOn = _app.input.toggleNotes();
             if (_app.toolbarUI) {
                 _app.toolbarUI.setNoteMode(isOn);
+                // Turn off marking when notes is on
+                if (isOn) {
+                    _app.toolbarUI.setMarkingMode(false);
+                    hideColorPalette();
+                }
+            }
+            break;
+        }
+
+        case 'marking': {
+            const markingOn = _app.input.toggleMarking();
+            if (_app.toolbarUI) {
+                _app.toolbarUI.setMarkingMode(markingOn);
+                // Turn off notes when marking is on
+                if (markingOn) {
+                    _app.toolbarUI.setNoteMode(false);
+                }
+            }
+            if (markingOn) {
+                showColorPalette();
+            } else {
+                hideColorPalette();
             }
             break;
         }
@@ -688,9 +851,206 @@ function handleToolbarAction(action) {
             break;
         }
 
+        case 'auto-notes': {
+            autoFillNotes();
+            break;
+        }
+
         default:
             break;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-fill notes
+// ---------------------------------------------------------------------------
+
+/**
+ * Fill all empty cells with candidate notes based on current board state.
+ * Supports undo: saves a snapshot of all notes before overwriting.
+ */
+function autoFillNotes() {
+    if (!_app.board || _app.board.isGameOver()) return;
+
+    const board = _app.board.getBoard();
+    const size = _app.board.boardSize || 9;
+    const blockSize = _app.board.blockSize;
+    const variant = _app.board.variant || 'standard';
+
+    // Snapshot current notes for undo
+    const prevNotesSnapshot = _app.board.notes.toJSON();
+
+    let changed = false;
+
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+            if (board[r][c] !== 0) continue;
+            if (_app.board.isGiven(r, c)) continue;
+
+            const candidates = getCandidates(board, r, c, size, blockSize, variant);
+            const currentNotes = _app.board.notes.get(r, c);
+
+            // Check if notes would change
+            if (candidates.size !== currentNotes.size || ![...candidates].every(n => currentNotes.has(n))) {
+                changed = true;
+            }
+
+            // Clear and set new candidates
+            _app.board.notes.clear(r, c);
+            for (const n of candidates) {
+                if (!_app.board.notes.hasNote(r, c, n)) {
+                    _app.board.notes.toggle(r, c, n);
+                }
+            }
+
+            // Update grid display
+            if (_app.gridUI) {
+                if (candidates.size > 0) {
+                    _app.gridUI.showNotes(r, c, candidates);
+                } else {
+                    _app.gridUI.clearCell(r, c);
+                }
+            }
+        }
+    }
+
+    if (changed) {
+        // Push a composite undo entry for the entire auto-notes action
+        _app.board.history.push({
+            type: 'auto-notes',
+            row: -1,
+            col: -1,
+            prevValue: 0,
+            newValue: 0,
+            prevNotes: [],
+            newNotes: [],
+            prevNotesSnapshot,
+        });
+    }
+
+    // Auto-save
+    try {
+        if (_app.board) saveGame(_app.board.toJSON());
+    } catch { /* ignore */ }
+
+    try { _app.sound?.play('tap'); } catch { /* ignore */ }
+}
+
+/**
+ * Handle undo of auto-notes: re-render all notes from the restored snapshot.
+ */
+function onAutoNotesUndone() {
+    if (!_app.board || !_app.gridUI) return;
+
+    const size = _app.board.boardSize || 9;
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+            if (_app.board.getBoard()[r][c] !== 0) continue;
+            const notes = _app.board.notes.get(r, c);
+            if (notes.size > 0) {
+                _app.gridUI.showNotes(r, c, notes);
+            } else {
+                _app.gridUI.clearCell(r, c);
+            }
+        }
+    }
+
+    // Auto-save
+    try {
+        if (_app.board) saveGame(_app.board.toJSON());
+    } catch { /* ignore */ }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-check mistakes
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply auto-mistake visual indicator if setting is enabled.
+ *
+ * @param {number} row
+ * @param {number} col
+ * @param {number} value - The placed value.
+ * @param {string} state - Current cell state ('user-input', 'error', etc.)
+ */
+function applyAutoMistakeCheck(row, col, value, state) {
+    if (!_app.gridUI || !_app.board) return;
+
+    const cell = _app.gridUI.getCell(row, col);
+    if (!cell) return;
+
+    // Only apply to user-input cells (not given, not already error state)
+    if (_app.board.isGiven(row, col)) {
+        cell.classList.remove('auto-mistake');
+        return;
+    }
+
+    if (!_app.settings?.autoCheckMistakes) {
+        cell.classList.remove('auto-mistake');
+        return;
+    }
+
+    const solution = _app.board.getSolution();
+    if (value !== 0 && value !== solution[row][col]) {
+        cell.classList.add('auto-mistake');
+    } else {
+        cell.classList.remove('auto-mistake');
+    }
+}
+
+/**
+ * Remove auto-mistake class from a cell.
+ *
+ * @param {number} row
+ * @param {number} col
+ */
+function removeAutoMistakeClass(row, col) {
+    if (!_app.gridUI) return;
+    const cell = _app.gridUI.getCell(row, col);
+    if (cell) cell.classList.remove('auto-mistake');
+}
+
+// ---------------------------------------------------------------------------
+// Color marking helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Show the color palette bar.
+ */
+function showColorPalette() {
+    const palette = document.getElementById('color-palette');
+    if (palette) {
+        palette.style.display = '';
+        // Set default active swatch (color 1)
+        const defaultSwatch = palette.querySelector('.color-swatch[data-color="1"]');
+        if (defaultSwatch && !palette.querySelector('.color-swatch.active')) {
+            defaultSwatch.classList.add('active');
+        }
+    }
+}
+
+/**
+ * Hide the color palette bar.
+ */
+function hideColorPalette() {
+    const palette = document.getElementById('color-palette');
+    if (palette) palette.style.display = 'none';
+}
+
+/**
+ * Cell color was changed (from input handler or undo).
+ *
+ * @param {{ row: number, col: number, colorIdx: number }} detail
+ */
+function onCellColorChanged(detail) {
+    if (_app.gridUI) {
+        _app.gridUI.setCellColor(detail.row, detail.col, detail.colorIdx);
+    }
+
+    // Auto-save
+    try {
+        if (_app.board) saveGame(_app.board.toJSON());
+    } catch { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------

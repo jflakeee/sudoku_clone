@@ -9,6 +9,7 @@
  */
 
 import { getBlockSize } from './board-config.js';
+import { getExtraCells } from './variant-rules.js';
 
 /**
  * Check whether placing `num` at (row, col) is valid according to
@@ -44,18 +45,10 @@ export function isValid(board, row, col, num, boardSize = 9, blockSize = null, v
         }
     }
 
-    // Check diagonals
-    if (variant === 'diagonal') {
-        if (row === col) {
-            for (let i = 0; i < boardSize; i++) {
-                if (i !== row && board[i][i] === num) return false;
-            }
-        }
-        if (row + col === boardSize - 1) {
-            for (let i = 0; i < boardSize; i++) {
-                if (i !== row && board[i][boardSize - 1 - i] === num) return false;
-            }
-        }
+    // Variant-specific extra cells
+    const extraCells = getExtraCells(variant, row, col, boardSize);
+    for (const cell of extraCells) {
+        if (board[cell.row][cell.col] === num) return false;
     }
 
     return true;

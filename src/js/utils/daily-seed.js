@@ -71,6 +71,44 @@ export function getDailyDifficulty(date) {
     return DIFFICULTY_CYCLE[(dayOfMonth - 1) % DIFFICULTY_CYCLE.length];
 }
 
+/**
+ * Return the daily-challenge variant for a given date.
+ *
+ * Sunday & Monday: standard
+ * Tuesday: diagonal
+ * Wednesday: anti-knight
+ * Thursday: anti-king
+ * Friday: windoku
+ * Saturday: even-odd
+ *
+ * @param {Date} [date] - Date to query (default: today).
+ * @returns {string} One of the supported variant strings.
+ */
+export function getDailyVariant(date) {
+    const d = date instanceof Date ? date : new Date();
+    const dayOfWeek = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const variants = ['standard', 'standard', 'diagonal', 'anti-knight', 'anti-king', 'windoku', 'even-odd'];
+    return variants[dayOfWeek];
+}
+
+/**
+ * Return a short badge label for a daily variant.
+ *
+ * @param {string} variant
+ * @returns {string}
+ */
+export function getVariantBadge(variant) {
+    const badges = {
+        standard: '',
+        diagonal: 'D',
+        'anti-knight': 'N',
+        'anti-king': 'K',
+        windoku: 'W',
+        'even-odd': 'E',
+    };
+    return badges[variant] || '';
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------

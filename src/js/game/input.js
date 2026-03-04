@@ -40,6 +40,12 @@ export class InputHandler {
         /** @type {boolean} Whether note (pencil-mark) mode is active. */
         this._noteMode = false;
 
+        /** @type {boolean} Whether marking (cell color) mode is active. */
+        this._markingMode = false;
+
+        /** @type {number} Active marking color index (1-6, or 0 for eraser). */
+        this._activeMarkingColor = 1;
+
         /** @type {object|null} */
         this._settings = settings || null;
     }
@@ -118,6 +124,9 @@ export class InputHandler {
      */
     toggleNotes() {
         this._noteMode = !this._noteMode;
+        if (this._noteMode) {
+            this._markingMode = false;
+        }
         return this._noteMode;
     }
 
@@ -128,6 +137,75 @@ export class InputHandler {
      */
     isNoteMode() {
         return this._noteMode;
+    }
+
+    /**
+     * Toggle marking (cell color) mode on/off.
+     *
+     * @returns {boolean} The new marking-mode state.
+     */
+    toggleMarking() {
+        this._markingMode = !this._markingMode;
+        if (this._markingMode) {
+            this._noteMode = false;
+        }
+        return this._markingMode;
+    }
+
+    /**
+     * Whether marking mode is currently active.
+     *
+     * @returns {boolean}
+     */
+    isMarkingMode() {
+        return this._markingMode;
+    }
+
+    /**
+     * Set the active marking color.
+     *
+     * @param {number} colorIdx - 0 to erase, 1-6 for a color.
+     */
+    setMarkingColor(colorIdx) {
+        this._activeMarkingColor = colorIdx;
+    }
+
+    /**
+     * Get the active marking color index.
+     *
+     * @returns {number}
+     */
+    getMarkingColor() {
+        return this._activeMarkingColor;
+    }
+
+    /**
+     * Apply the active marking color to the selected cell.
+     */
+    applyMarking() {
+        if (!this._selectedCell) return;
+
+        const { row, col } = this._selectedCell;
+        const oldColor = this._board.getCellColor(row, col);
+        const newColor = this._activeMarkingColor;
+
+        if (oldColor === newColor) return;
+
+        this._board.history.push({
+            type: 'marking',
+            row,
+            col,
+            prevValue: 0,
+            newValue: 0,
+            prevNotes: [],
+            newNotes: [],
+            prevColor: oldColor,
+            newColor,
+        });
+
+        this._board.setCellColor(row, col, newColor);
+
+        this._dispatch('cell-color-changed', { row, col, colorIdx: newColor });
     }
 
     /**
@@ -161,6 +239,20 @@ export class InputHandler {
         if (!action) return;
 
         const { row, col, prevValue, prevNotes, type } = action;
+
+        // Handle auto-notes bulk undo
+        if (type === 'auto-notes' && action.prevNotesSnapshot) {
+            this._board.notes.fromJSON(action.prevNotesSnapshot);
+            this._dispatch('auto-notes-undone', {});
+            return;
+        }
+
+        // Handle marking undo
+        if (type === 'marking') {
+            this._board.setCellColor(row, col, action.prevColor || 0);
+            this._dispatch('cell-color-changed', { row, col, colorIdx: action.prevColor || 0 });
+            return;
+        }
 
         // Restore the cell value
         // We directly set the internal board to avoid re-validation.

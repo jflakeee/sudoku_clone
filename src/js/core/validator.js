@@ -8,6 +8,7 @@
  */
 
 import { getBlockSize } from './board-config.js';
+import { getExtraCells } from './variant-rules.js';
 
 /**
  * Get all cell positions in the given row.
@@ -69,20 +70,20 @@ export function getBlockCells(row, col, boardSize = 9, blockSize = null) {
  * Returns cells from the main diagonal (row===col) and/or anti-diagonal
  * (row+col===boardSize-1) if the cell lies on them.
  *
+ * NOTE: This is now a thin wrapper around getExtraCells('diagonal', ...).
+ * It includes the cell itself in the result (matching original behavior)
+ * for backward compatibility with callers like HighlightUI.
+ *
  * @param {number} row - Row index
  * @param {number} col - Column index
  * @param {number} [boardSize=9] - Board dimension
  * @returns {{row: number, col: number}[]} Array of cell positions
  */
 export function getDiagonalCells(row, col, boardSize = 9) {
-    const cells = [];
-    if (row === col) {
-        for (let i = 0; i < boardSize; i++) cells.push({ row: i, col: i });
-    }
-    if (row + col === boardSize - 1) {
-        for (let i = 0; i < boardSize; i++) cells.push({ row: i, col: boardSize - 1 - i });
-    }
-    return cells;
+    const extra = getExtraCells('diagonal', row, col, boardSize);
+    if (extra.length === 0) return [];
+    // getExtraCells excludes the cell itself; getDiagonalCells includes it
+    return [{ row, col }, ...extra];
 }
 
 /**
@@ -99,9 +100,10 @@ export function getDiagonalCells(row, col, boardSize = 9) {
  * @param {number} [boardSize=9] - Board dimension
  * @param {{rows: number, cols: number}} [blockSize=null] - Block dimensions
  * @param {string} [variant='standard'] - Game variant ('standard' or 'diagonal')
+ * @param {object} [extraData] - Extra variant data (e.g. cages for killer)
  * @returns {{row: number, col: number}[]} Array of conflicting cell positions
  */
-export function checkConflicts(board, row, col, num, boardSize = 9, blockSize = null, variant = 'standard') {
+export function checkConflicts(board, row, col, num, boardSize = 9, blockSize = null, variant = 'standard', extraData = null) {
     if (!blockSize) blockSize = getBlockSize(boardSize);
 
     if (num < 1 || num > boardSize) return [];
@@ -138,14 +140,10 @@ export function checkConflicts(board, row, col, num, boardSize = 9, blockSize = 
         }
     }
 
-    // Diagonals
-    if (variant === 'diagonal') {
-        if (row === col) {
-            for (let i = 0; i < boardSize; i++) check(i, i);
-        }
-        if (row + col === boardSize - 1) {
-            for (let i = 0; i < boardSize; i++) check(i, boardSize - 1 - i);
-        }
+    // Variant-specific extra cells
+    const extraCells = getExtraCells(variant, row, col, boardSize, extraData);
+    for (const cell of extraCells) {
+        check(cell.row, cell.col);
     }
 
     return conflicts;

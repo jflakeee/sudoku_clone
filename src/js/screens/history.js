@@ -7,6 +7,7 @@
  */
 
 import { loadGameHistory, getGameHistoryById } from '../utils/storage.js';
+import { encodePuzzle } from '../utils/puzzle-share.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -78,7 +79,15 @@ function renderHistoryList() {
             ? '일일도전'
             : MODE_LABELS[entry.mode] || entry.mode;
         const sizeLabel = entry.boardSize ? `${entry.boardSize}×${entry.boardSize}` : '9×9';
-        const variantBadge = entry.variant === 'diagonal' ? ' · <span class="badge-diagonal">대각선</span>' : '';
+        const VARIANT_BADGES = {
+            diagonal: '<span class="badge-diagonal">대각선</span>',
+            'anti-knight': '<span class="badge-anti-knight">안티나이트</span>',
+            'anti-king': '<span class="badge-anti-king">안티킹</span>',
+            'even-odd': '<span class="badge-even-odd">짝홀</span>',
+            windoku: '<span class="badge-windoku">윈도쿠</span>',
+            killer: '<span class="badge-killer">킬러</span>',
+        };
+        const variantBadge = VARIANT_BADGES[entry.variant] ? ' · ' + VARIANT_BADGES[entry.variant] : '';
         const checked = _selectedIds.has(entry.id) ? 'checked' : '';
 
         item.innerHTML = `
@@ -88,6 +97,7 @@ function renderHistoryList() {
                 <div class="history-item-meta">${dateStr} · ${sizeLabel} · ${formatTime(entry.time)} · ${(entry.score || 0).toLocaleString()}점</div>
             </div>
             <div class="history-item-actions">
+                <button class="btn-sm btn-share-puzzle" data-history-id="${entry.id}" title="퍼즐 공유">공유</button>
                 <button class="btn-sm btn-replay" data-history-id="${entry.id}" title="재도전">재도전</button>
                 <button class="btn-sm btn-print-single" data-history-id="${entry.id}" title="인쇄">인쇄</button>
             </div>
@@ -181,6 +191,8 @@ function handleReplay(entryId) {
         boardSize: entry.boardSize || 9,
         dailyDate: entry.dailyDate || null,
         variant: entry.variant || 'standard',
+        evenOddMap: entry.evenOddMap || null,
+        cages: entry.cages || null,
     });
 }
 
@@ -194,6 +206,50 @@ function handlePrintSingle(entryId) {
     if (!entry) return;
 
     _app.navigate('print', { entries: [entry] });
+}
+
+/**
+ * Handle puzzle share button click.
+ *
+ * @param {string} entryId
+ */
+async function handleSharePuzzle(entryId) {
+    const entry = getGameHistoryById(entryId);
+    if (!entry || !entry.puzzle || !entry.solution) return;
+
+    const code = encodePuzzle(entry.puzzle, entry.solution, entry.boardSize || 9, entry.variant || 'standard');
+    const url = `${window.location.origin}${window.location.pathname}?puzzle=${code}`;
+
+    try {
+        await navigator.clipboard.writeText(url);
+        showHistoryToast('\uD37C\uC990 \uB9C1\uD06C\uAC00 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4!');
+    } catch {
+        showHistoryToast('\uBCF5\uC0AC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.');
+    }
+}
+
+/**
+ * Show a brief toast notification for the history screen.
+ *
+ * @param {string} message
+ */
+function showHistoryToast(message) {
+    const toast = document.getElementById('share-toast');
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.style.display = '';
+    toast.classList.remove('hide');
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => {
+            toast.style.display = 'none';
+            toast.classList.remove('hide');
+        }, 400);
+    }, 2000);
 }
 
 /**
@@ -234,6 +290,12 @@ export function initHistoryScreen(app) {
     const listEl = document.getElementById('history-list');
     if (listEl) {
         listEl.addEventListener('click', (e) => {
+            const shareBtn = e.target.closest('.btn-share-puzzle');
+            if (shareBtn) {
+                handleSharePuzzle(shareBtn.dataset.historyId);
+                return;
+            }
+
             const replayBtn = e.target.closest('.btn-replay');
             if (replayBtn) {
                 handleReplay(replayBtn.dataset.historyId);

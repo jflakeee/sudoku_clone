@@ -34,6 +34,9 @@ export class ToolbarUI {
 
         /** @type {HTMLElement|null} */
         this._eraseBtn = containerEl.querySelector('.tool-btn[data-action="erase"]');
+
+        /** @type {HTMLElement|null} */
+        this._markingBtn = containerEl.querySelector('.tool-btn[data-action="marking"]');
     }
 
     // -----------------------------------------------------------------------
@@ -86,10 +89,20 @@ export class ToolbarUI {
     }
 
     /**
+     * Update the Marking button visual to reflect whether marking mode is active.
+     *
+     * @param {boolean} active
+     */
+    setMarkingMode(active) {
+        if (!this._markingBtn) return;
+        this._markingBtn.classList.toggle('active', active);
+    }
+
+    /**
      * Register a unified callback for all toolbar button clicks.
      * Uses event delegation on the toolbar container.
      *
-     * @param {(action: 'undo'|'erase'|'notes'|'hint') => void} callback
+     * @param {(action: string) => void} callback
      */
     onAction(callback) {
         this._container.addEventListener('click', (e) => {
@@ -101,8 +114,8 @@ export class ToolbarUI {
 
             const action = btn.getAttribute('data-action');
 
-            if (action === 'undo' || action === 'erase' || action === 'notes' || action === 'hint') {
-                callback(/** @type {'undo'|'erase'|'notes'|'hint'} */ (action));
+            if (action === 'undo' || action === 'erase' || action === 'notes' || action === 'hint' || action === 'auto-notes' || action === 'marking') {
+                callback(action);
             }
         });
     }

@@ -13,7 +13,8 @@
  * @module ui/highlight
  */
 
-import { getRowCells, getColCells, getBlockCells, getDiagonalCells } from '../core/validator.js';
+import { getRowCells, getColCells, getBlockCells } from '../core/validator.js';
+import { getExtraCells } from '../core/variant-rules.js';
 
 // ---------------------------------------------------------------------------
 // CSS class names
@@ -59,6 +60,9 @@ export class HighlightUI {
 
         /** @type {string} */
         this._variant = 'standard';
+
+        /** @type {object|null} Extra data for variant (e.g. cages) */
+        this._extraData = null;
     }
 
     // -----------------------------------------------------------------------
@@ -93,8 +97,10 @@ export class HighlightUI {
             ...getBlockCells(row, col, this._gridSize),
         ];
 
-        if (this._variant === 'diagonal') {
-            relatedCells.push(...getDiagonalCells(row, col, this._gridSize));
+        // Variant-specific extra cells
+        const extraCells = getExtraCells(this._variant, row, col, this._gridSize, this._extraData);
+        for (const cell of extraCells) {
+            relatedCells.push(cell);
         }
 
         // De-duplicate using a position key set

@@ -13,6 +13,7 @@
  */
 
 import { getBlockSize } from '../core/board-config.js';
+import { getExtraCells } from '../core/variant-rules.js';
 
 /**
  * @class Notes
@@ -33,6 +34,9 @@ export class Notes {
 
         /** @type {string} */
         this.variant = variant;
+
+        /** @type {object|null} Extra variant data (e.g. cages for killer) */
+        this.extraData = null;
 
         /** @type {Set<number>[][]} Array of Sets. */
         this._grid = Notes._createEmptyGrid(this.boardSize);
@@ -112,14 +116,10 @@ export class Notes {
             }
         }
 
-        // Same diagonal(s)
-        if (this.variant === 'diagonal') {
-            if (row === col) {
-                for (let i = 0; i < this.boardSize; i++) this._grid[i][i].delete(num);
-            }
-            if (row + col === this.boardSize - 1) {
-                for (let i = 0; i < this.boardSize; i++) this._grid[i][this.boardSize - 1 - i].delete(num);
-            }
+        // Variant-specific extra cells
+        const extraCells = getExtraCells(this.variant, row, col, this.boardSize, this.extraData);
+        for (const cell of extraCells) {
+            this._grid[cell.row][cell.col].delete(num);
         }
     }
 

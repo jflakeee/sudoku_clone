@@ -76,22 +76,20 @@ test.describe('Screen Content', () => {
         await expect(page.locator('#screen-awards .awards-tabs')).toBeVisible();
     });
 
-    test('tutorial screen shows slides with navigation', async ({ page }) => {
+    test('tutorial screen shows interactive steps', async ({ page }) => {
         await navigateToScreen(page, 'profile');
         await page.click('#screen-profile .menu-item[data-navigate="tutorial"]');
+        await page.waitForSelector('#screen-tutorial.active');
 
-        // First slide visible (use specific selector)
-        await expect(page.locator('.tutorial-slide[data-slide="0"]')).toBeVisible();
+        // First step title visible
+        await expect(page.locator('.tutorial-step-title')).toBeVisible();
 
-        // Navigation dots
-        const dots = page.locator('.dot');
-        await expect(dots).toHaveCount(3);
+        // Progress indicator
+        await expect(page.locator('.tutorial-progress')).toContainText('1/5');
 
-        // Next button
-        await page.click('.tutorial-next');
-
-        // Should move to second slide (second dot active)
-        await expect(dots.nth(1)).toHaveClass(/active/);
+        // Mini grid and numberpad visible
+        await expect(page.locator('.tutorial-mini-grid')).toBeVisible();
+        await expect(page.locator('.t-num-btn').first()).toBeVisible();
     });
 
     test('difficulty modal has 5 difficulty options', async ({ page }) => {

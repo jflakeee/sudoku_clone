@@ -8,7 +8,7 @@
  */
 
 import { loadDailyChallenge } from '../utils/storage.js';
-import { getDailyDifficulty } from '../utils/daily-seed.js';
+import { getDailyDifficulty, getDailyVariant, getVariantBadge } from '../utils/daily-seed.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -211,6 +211,22 @@ function renderCalendar() {
             cell.appendChild(indicator);
         }
 
+        // Variant badge
+        const dayVariant = getDailyVariant(dateObj);
+        const badge = getVariantBadge(dayVariant);
+        if (badge) {
+            const badgeEl = document.createElement('span');
+            badgeEl.className = 'variant-badge';
+            badgeEl.textContent = badge;
+            cell.appendChild(badgeEl);
+        }
+
+        // Difficulty dot
+        const dayDiff = getDailyDifficulty(dateObj);
+        const dot = document.createElement('span');
+        dot.className = `difficulty-dot ${dayDiff}`;
+        cell.appendChild(dot);
+
         cell.addEventListener('click', () => {
             _selectedDate = dateStr;
             renderCalendar();
@@ -233,11 +249,13 @@ function onPlayClick() {
     const parts = _selectedDate.split('-').map(Number);
     const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
     const difficulty = getDailyDifficulty(dateObj);
+    const variant = getDailyVariant(dateObj);
 
     _app.navigate('game', {
         difficulty,
         daily: true,
         date: _selectedDate,
+        variant,
     });
 }
 

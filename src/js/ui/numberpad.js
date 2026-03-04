@@ -35,9 +35,14 @@ export class NumberpadUI {
         /** @type {HTMLElement[]} Buttons indexed 0-(maxNumber-1). */
         this._buttons = [];
 
-        // Cache button references
+        // ARIA: mark numberpad as a group
+        this._container.setAttribute('role', 'group');
+        this._container.setAttribute('aria-label', '숫자패드');
+
+        // Cache button references and add ARIA labels
         for (let n = 1; n <= this._maxNumber; n++) {
             const btn = this._container.querySelector(`.num-btn[data-number="${n}"]`);
+            if (btn) btn.setAttribute('aria-label', `숫자 ${n}`);
             this._buttons.push(btn);
         }
     }
@@ -153,10 +158,15 @@ export class NumberpadUI {
         this._container.innerHTML = '';
         this._buttons = [];
 
+        // Maintain ARIA group role
+        this._container.setAttribute('role', 'group');
+        this._container.setAttribute('aria-label', '숫자패드');
+
         for (let n = 1; n <= maxNumber; n++) {
             const btn = document.createElement('button');
             btn.className = 'num-btn';
             btn.setAttribute('data-number', String(n));
+            btn.setAttribute('aria-label', `숫자 ${n}`);
             btn.textContent = String(n);
             this._container.appendChild(btn);
             this._buttons.push(btn);

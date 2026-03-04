@@ -7,7 +7,7 @@
  * @module utils/achievements
  */
 
-import { loadStats, loadDailyChallenge, loadGameHistory } from './storage.js';
+import { loadStats, loadDailyChallenge, loadGameHistory, loadStreak } from './storage.js';
 
 // ---------------------------------------------------------------------------
 // Storage key
@@ -138,6 +138,21 @@ export const ACHIEVEMENTS = [
         desc: '총 플레이 시간 10시간 달성',
         check: (d) => d.totalPlayTime >= 36000,
     },
+    {
+        id: 'streak_7', category: 'challenge', icon: '\uD83D\uDD25', title: '일주일 연속',
+        desc: '7일 연속 퍼즐 풀기',
+        check: (d) => d.streakBest >= 7,
+    },
+    {
+        id: 'streak_30', category: 'challenge', icon: '\uD83C\uDF1F', title: '한 달 연속',
+        desc: '30일 연속 퍼즐 풀기',
+        check: (d) => d.streakBest >= 30,
+    },
+    {
+        id: 'streak_100', category: 'challenge', icon: '\uD83D\uDC8E', title: '100일 연속',
+        desc: '100일 연속 퍼즐 풀기',
+        check: (d) => d.streakBest >= 100,
+    },
 ];
 
 // ---------------------------------------------------------------------------
@@ -206,6 +221,8 @@ function gatherData() {
         }
     }
 
+    const streak = loadStreak();
+
     return {
         totalWins,
         totalNoMistake,
@@ -218,6 +235,7 @@ function gatherData() {
         bigBoardCleared,
         dailyCompleted: daily.completed.length,
         dailyStreak: daily.streak,
+        streakBest: streak.best || 0,
     };
 }
 

@@ -9,6 +9,7 @@
  */
 
 import { loadSettings, saveSettings } from '../utils/storage.js';
+import { setLocale } from '../utils/i18n.js';
 
 // ---------------------------------------------------------------------------
 // Module state
@@ -45,11 +46,21 @@ function syncToggles() {
     toggles.forEach((toggle) => {
         const key = toggle.getAttribute('data-setting');
         if (key && key in _settings) {
-            toggle.checked = !!_settings[key];
+            if (toggle.type === 'range') {
+                toggle.value = _settings[key];
+            } else {
+                toggle.checked = !!_settings[key];
+            }
         }
     });
 
     syncThemePicker();
+
+    // Sync locale selector
+    const localeSelect = document.getElementById('locale-select');
+    if (localeSelect) {
+        localeSelect.value = _settings.locale || 'ko';
+    }
 }
 
 /**
@@ -79,10 +90,17 @@ function onToggleChange(e) {
     if (!toggle || !toggle.dataset.setting) return;
 
     const key = toggle.dataset.setting;
-    _settings[key] = toggle.checked;
+    // Select elements use .value, checkboxes/ranges use .checked/.value
+    if (toggle.tagName === 'SELECT') {
+        _settings[key] = toggle.value;
+    } else if (toggle.type === 'range') {
+        _settings[key] = Number(toggle.value);
+    } else {
+        _settings[key] = toggle.checked;
+    }
     saveSettings(_settings);
 
-    applySettingImmediately(key, toggle.checked);
+    applySettingImmediately(key, _settings[key]);
 }
 
 /**
@@ -139,6 +157,14 @@ function applySettingImmediately(key, value) {
             syncThemePicker();
             break;
 
+        case 'highContrast':
+            document.body.classList.toggle('high-contrast', value);
+            break;
+
+        case 'locale':
+            setLocale(value || 'ko');
+            break;
+
         default:
             break;
     }
@@ -168,6 +194,19 @@ export function initSettingsScreen(app) {
     const screen = document.getElementById('screen-settings');
     if (screen) {
         screen.addEventListener('change', onToggleChange);
+
+        // Listen for volume slider input
+        const volumeSlider = screen.querySelector('.volume-slider');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                _settings.volume = val;
+                saveSettings(_settings);
+                if (_app.settings) {
+                    Object.assign(_app.settings, _settings);
+                }
+            });
+        }
     }
 
     // Listen for theme picker clicks

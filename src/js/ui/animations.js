@@ -193,11 +193,12 @@ export function animateCompletionWave(gridUI, callback) {
         return;
     }
 
-    const CELL_DELAY = 30; // ms between each cell
+    const CELL_DELAY = 25; // ms per distance unit
     const CELL_ANIM_DURATION = 400; // ms for each cell's animation
     let maxDelay = 0;
 
     const gridSize = gridUI._gridSize || 9;
+    const center = (gridSize - 1) / 2;
 
     for (let r = 0; r < gridSize; r++) {
         for (let c = 0; c < gridSize; c++) {
@@ -207,16 +208,18 @@ export function animateCompletionWave(gridUI, callback) {
 
             if (!cellEl) continue;
 
-            const delay = (r + c) * CELL_DELAY;
+            // Distance from center for radial wave effect
+            const dist = Math.sqrt((r - center) ** 2 + (c - center) ** 2);
+            const delay = Math.floor(dist * CELL_DELAY);
             if (delay > maxDelay) maxDelay = delay;
 
             setTimeout(() => {
-                cellEl.classList.add('wave');
+                cellEl.classList.add('cell-wave');
             }, delay);
 
             // Remove class after animation
             setTimeout(() => {
-                cellEl.classList.remove('wave');
+                cellEl.classList.remove('cell-wave');
             }, delay + CELL_ANIM_DURATION);
         }
     }
@@ -226,38 +229,5 @@ export function animateCompletionWave(gridUI, callback) {
     if (callback) {
         setTimeout(callback, totalDuration);
     }
-
-    // Inject wave keyframes if needed
-    injectWaveKeyframes();
 }
 
-/**
- * Inject the CSS @keyframes for the wave animation if not already present.
- */
-function injectWaveKeyframes() {
-    if (document.getElementById('wave-keyframes')) return;
-
-    const style = document.createElement('style');
-    style.id = 'wave-keyframes';
-    style.textContent = `
-        .cell.wave {
-            animation: cell-wave 0.4s ease-out forwards;
-        }
-
-        @keyframes cell-wave {
-            0% {
-                background-color: inherit;
-                transform: scale(1);
-            }
-            50% {
-                background-color: #5C7AEA;
-                transform: scale(1.1);
-            }
-            100% {
-                background-color: #7C9CF5;
-                transform: scale(1);
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}

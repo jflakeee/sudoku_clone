@@ -20,6 +20,10 @@ const KEYS = {
     SETTINGS: 'sudoku_settings',
     DAILY_CHALLENGE: 'sudoku_dailyChallenge',
     GAME_HISTORY: 'sudoku_gameHistory',
+    STREAK: 'sudoku_streak',
+    USER_XP: 'sudoku_userXP',
+    WEEKLY: 'sudoku_weekly',
+    ACTIVE_TITLE: 'sudoku_activeTitle',
 };
 
 const MAX_HISTORY_ENTRIES = 200;
@@ -62,6 +66,11 @@ function getDefaultSettings() {
         mistakeLimit: true,
         darkMode: false,
         theme: 'default',
+        autoCheckMistakes: false,
+        animations: true,
+        locale: 'ko',
+        highContrast: false,
+        volume: 50,
     };
 }
 
@@ -197,16 +206,23 @@ export function clearGame() {
 // ---------------------------------------------------------------------------
 
 /**
- * Get the localStorage key for stats based on game mode.
+ * Get the localStorage key for stats based on game mode, board size, and variant.
  *
  * @param {string} mode - Game mode ('classic', 'timeAttack', etc.).
+ * @param {number} [boardSize=9] - Board size (4, 6, 9, 12, 16).
+ * @param {string} [variant='standard'] - Variant ('standard', 'diagonal', etc.).
  * @returns {string} The storage key.
  */
-function getStatsKey(mode) {
+export function getStatsKey(mode = 'classic', boardSize = 9, variant = 'standard') {
+    let key = KEYS.STATS;
     if (mode && mode !== 'classic') {
-        return `${KEYS.STATS}_${mode}`;
+        key = `${KEYS.STATS}_${mode}`;
     }
-    return KEYS.STATS;
+    // Only add suffix for non-default boardSize/variant
+    if (boardSize !== 9 || variant !== 'standard') {
+        key += `_${boardSize}_${variant}`;
+    }
+    return key;
 }
 
 /**
@@ -214,9 +230,11 @@ function getStatsKey(mode) {
  *
  * @param {object} stats - Stats object keyed by difficulty.
  * @param {string} [mode='classic'] - Game mode.
+ * @param {number} [boardSize=9] - Board size.
+ * @param {string} [variant='standard'] - Variant.
  */
-export function saveStats(stats, mode = 'classic') {
-    writeJSON(getStatsKey(mode), stats);
+export function saveStats(stats, mode = 'classic', boardSize = 9, variant = 'standard') {
+    writeJSON(getStatsKey(mode, boardSize, variant), stats);
 }
 
 /**
@@ -224,10 +242,12 @@ export function saveStats(stats, mode = 'classic') {
  * has been persisted yet.
  *
  * @param {string} [mode='classic'] - Game mode.
+ * @param {number} [boardSize=9] - Board size.
+ * @param {string} [variant='standard'] - Variant.
  * @returns {Record<string, object>} Per-difficulty stats.
  */
-export function loadStats(mode = 'classic') {
-    const stored = readJSON(getStatsKey(mode));
+export function loadStats(mode = 'classic', boardSize = 9, variant = 'standard') {
+    const stored = readJSON(getStatsKey(mode, boardSize, variant));
     if (!stored || typeof stored !== 'object') {
         return getDefaultStats();
     }
@@ -246,6 +266,83 @@ export function loadStats(mode = 'classic') {
     }
 
     return merged;
+}
+
+/**
+ * Load aggregate statistics across all boardSize/variant combos for a mode.
+ * Merges stats by summing counts and taking best values.
+ *
+ * @param {string} [mode='classic'] - Game mode.
+ * @param {string} [filterSize='all'] - Board size filter ('all' or number string).
+ * @param {string} [filterVariant='all'] - Variant filter ('all' or variant string).
+ * @returns {Record<string, object>} Aggregated per-difficulty stats.
+ */
+export function loadAggregateStats(mode = 'classic', filterSize = 'all', filterVariant = 'all') {
+    const sizes = [4, 6, 9, 12, 16];
+    const variants = ['standard', 'diagonal', 'anti-knight', 'anti-king', 'windoku', 'even-odd'];
+
+    const targetSizes = filterSize === 'all' ? sizes : [Number(filterSize)];
+    const targetVariants = filterVariant === 'all' ? variants : [filterVariant];
+
+    const aggregate = getDefaultStats();
+
+    for (const sz of targetSizes) {
+        for (const v of targetVariants) {
+            const stats = loadStats(mode, sz, v);
+            for (const diff of DIFFICULTIES) {
+                const src = stats[diff];
+                const dst = aggregate[diff];
+                if (!src) continue;
+                dst.gamesStarted += src.gamesStarted || 0;
+                dst.gamesWon += src.gamesWon || 0;
+                dst.noMistakeWins += src.noMistakeWins || 0;
+                dst.totalTime += src.totalTime || 0;
+                if (src.bestTime > 0 && (dst.bestTime === 0 || src.bestTime < dst.bestTime)) {
+                    dst.bestTime = src.bestTime;
+                }
+                if ((src.currentStreak || 0) > dst.currentStreak) dst.currentStreak = src.currentStreak;
+                if ((src.bestStreak || 0) > dst.bestStreak) dst.bestStreak = src.bestStreak;
+                const srcHs = src.highScores || {};
+                const dstHs = dst.highScores;
+                if ((srcHs.today || 0) > dstHs.today) dstHs.today = srcHs.today;
+                if ((srcHs.thisWeek || 0) > dstHs.thisWeek) dstHs.thisWeek = srcHs.thisWeek;
+                if ((srcHs.thisMonth || 0) > dstHs.thisMonth) dstHs.thisMonth = srcHs.thisMonth;
+                if ((srcHs.allTime || 0) > dstHs.allTime) dstHs.allTime = srcHs.allTime;
+            }
+        }
+    }
+
+    // Also include legacy keys (old format without boardSize/variant suffix)
+    if (filterSize === 'all' || filterSize === '9') {
+        if (filterVariant === 'all' || filterVariant === 'standard') {
+            const legacyKey = mode === 'classic' ? KEYS.STATS : `${KEYS.STATS}_${mode}`;
+            const legacy = readJSON(legacyKey);
+            if (legacy && typeof legacy === 'object') {
+                for (const diff of DIFFICULTIES) {
+                    const src = legacy[diff];
+                    const dst = aggregate[diff];
+                    if (!src || typeof src !== 'object') continue;
+                    dst.gamesStarted += src.gamesStarted || 0;
+                    dst.gamesWon += src.gamesWon || 0;
+                    dst.noMistakeWins += src.noMistakeWins || 0;
+                    dst.totalTime += src.totalTime || 0;
+                    if (src.bestTime > 0 && (dst.bestTime === 0 || src.bestTime < dst.bestTime)) {
+                        dst.bestTime = src.bestTime;
+                    }
+                    if ((src.currentStreak || 0) > dst.currentStreak) dst.currentStreak = src.currentStreak;
+                    if ((src.bestStreak || 0) > dst.bestStreak) dst.bestStreak = src.bestStreak;
+                    const srcHs = src.highScores || {};
+                    const dstHs = dst.highScores;
+                    if ((srcHs.today || 0) > dstHs.today) dstHs.today = srcHs.today;
+                    if ((srcHs.thisWeek || 0) > dstHs.thisWeek) dstHs.thisWeek = srcHs.thisWeek;
+                    if ((srcHs.thisMonth || 0) > dstHs.thisMonth) dstHs.thisMonth = srcHs.thisMonth;
+                    if ((srcHs.allTime || 0) > dstHs.allTime) dstHs.allTime = srcHs.allTime;
+                }
+            }
+        }
+    }
+
+    return aggregate;
 }
 
 // ---------------------------------------------------------------------------
@@ -448,4 +545,88 @@ export function getGameHistoryById(id) {
  */
 export function clearGameHistory() {
     writeJSON(KEYS.GAME_HISTORY, []);
+}
+
+// ---------------------------------------------------------------------------
+// Streak (daily puzzle-solving streak)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a fresh default streak object.
+ *
+ * @returns {{ current: number, best: number, lastDate: string | null }}
+ */
+function getDefaultStreak() {
+    return { current: 0, best: 0, lastDate: null };
+}
+
+/**
+ * Save streak data.
+ *
+ * @param {{ current: number, best: number, lastDate: string | null }} data
+ */
+export function saveStreak(data) {
+    writeJSON(KEYS.STREAK, data);
+}
+
+/**
+ * Load streak data, falling back to defaults.
+ *
+ * @returns {{ current: number, best: number, lastDate: string | null }}
+ */
+export function loadStreak() {
+    const stored = readJSON(KEYS.STREAK);
+    if (!stored || typeof stored !== 'object') {
+        return getDefaultStreak();
+    }
+    return {
+        current: typeof stored.current === 'number' ? stored.current : 0,
+        best: typeof stored.best === 'number' ? stored.best : 0,
+        lastDate: typeof stored.lastDate === 'string' ? stored.lastDate : null,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Weekly challenge
+// ---------------------------------------------------------------------------
+
+/**
+ * Save weekly challenge progress.
+ *
+ * @param {{ completed: boolean, time: number, mistakes: number, week: number, score: number }} data
+ */
+export function saveWeekly(data) {
+    writeJSON(KEYS.WEEKLY, data);
+}
+
+/**
+ * Load weekly challenge progress.
+ *
+ * @returns {{ completed: boolean, time: number, mistakes: number, week: number, score: number } | null}
+ */
+export function loadWeekly() {
+    return readJSON(KEYS.WEEKLY);
+}
+
+// ---------------------------------------------------------------------------
+// Active title
+// ---------------------------------------------------------------------------
+
+/**
+ * Save the user's active title id.
+ *
+ * @param {string} titleId
+ */
+export function saveActiveTitle(titleId) {
+    writeJSON(KEYS.ACTIVE_TITLE, titleId);
+}
+
+/**
+ * Load the user's active title id.
+ *
+ * @returns {string}
+ */
+export function loadActiveTitle() {
+    const stored = readJSON(KEYS.ACTIVE_TITLE);
+    return typeof stored === 'string' ? stored : 'beginner';
 }

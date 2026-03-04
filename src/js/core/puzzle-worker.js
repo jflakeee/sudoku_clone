@@ -36,6 +36,74 @@ function getDifficultyRange(boardSize, difficulty) {
     return ranges[difficulty] || ranges.easy;
 }
 
+// ---- variant-rules inline ----
+// Mirrors core/variant-rules.js getExtraCells() for use inside the Worker.
+// Each entry returns extra constrained cells (excluding the cell itself).
+const VARIANT_EXTRA_CELLS = {
+    standard: () => [],
+    diagonal: (row, col, boardSize) => {
+        const cells = [];
+        if (row === col) {
+            for (let i = 0; i < boardSize; i++) {
+                if (i !== row) cells.push({ row: i, col: i });
+            }
+        }
+        if (row + col === boardSize - 1) {
+            for (let i = 0; i < boardSize; i++) {
+                if (i !== row) cells.push({ row: i, col: boardSize - 1 - i });
+            }
+        }
+        return cells;
+    },
+    'anti-knight': (row, col, boardSize) => {
+        const offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+        return offsets
+            .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+            .filter(c => c.row >= 0 && c.row < boardSize && c.col >= 0 && c.col < boardSize);
+    },
+    'anti-king': (row, col, boardSize) => {
+        const offsets = [[-1,-1],[-1,1],[1,-1],[1,1]];
+        return offsets
+            .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+            .filter(c => c.row >= 0 && c.row < boardSize && c.col >= 0 && c.col < boardSize);
+    },
+    'even-odd': () => [],
+    killer: (row, col, boardSize, extraData) => {
+        if (!extraData || !extraData.cages) return [];
+        for (const cage of extraData.cages) {
+            if (cage.cells.some(c => c.row === row && c.col === col)) {
+                return cage.cells.filter(c => c.row !== row || c.col !== col);
+            }
+        }
+        return [];
+    },
+    windoku: (row, col, boardSize) => {
+        if (boardSize !== 9) return [];
+        const windows = [
+            { rStart: 1, cStart: 1 },
+            { rStart: 1, cStart: 5 },
+            { rStart: 5, cStart: 1 },
+            { rStart: 5, cStart: 5 },
+        ];
+        const cells = [];
+        for (const w of windows) {
+            if (row >= w.rStart && row < w.rStart + 3 && col >= w.cStart && col < w.cStart + 3) {
+                for (let r = w.rStart; r < w.rStart + 3; r++) {
+                    for (let c = w.cStart; c < w.cStart + 3; c++) {
+                        if (r !== row || c !== col) cells.push({ row: r, col: c });
+                    }
+                }
+            }
+        }
+        return cells;
+    },
+};
+
+function getExtraCellsWorker(variant, row, col, boardSize) {
+    const fn = VARIANT_EXTRA_CELLS[variant];
+    return fn ? fn(row, col, boardSize) : [];
+}
+
 // ---- solver inline ----
 function isValid(board, row, col, num, boardSize, blockSize, variant) {
     for (let c = 0; c < boardSize; c++) {
@@ -51,17 +119,10 @@ function isValid(board, row, col, num, boardSize, blockSize, variant) {
             if (board[r][c] === num) return false;
         }
     }
-    if (variant === 'diagonal') {
-        if (row === col) {
-            for (let i = 0; i < boardSize; i++) {
-                if (i !== row && board[i][i] === num) return false;
-            }
-        }
-        if (row + col === boardSize - 1) {
-            for (let i = 0; i < boardSize; i++) {
-                if (i !== row && board[i][boardSize - 1 - i] === num) return false;
-            }
-        }
+    // Variant-specific extra cells
+    const extraCells = getExtraCellsWorker(variant, row, col, boardSize);
+    for (const cell of extraCells) {
+        if (board[cell.row][cell.col] === num) return false;
     }
     return true;
 }
@@ -172,7 +233,78 @@ function generatePuzzleWorker(difficulty, boardSize, variant) {
 
     const given = board.map(r => r.map(v => v !== 0));
 
-    return { board, solution, given, difficulty, variant };
+    const result = { board, solution, given, difficulty, variant };
+
+    // Generate evenOddMap for even-odd variant
+    if (variant === 'even-odd') {
+        result.evenOddMap = generateEvenOddMap(solution, boardSize);
+    }
+
+    // Generate cages for killer variant
+    if (variant === 'killer') {
+        result.cages = generateCagesWorker(solution, boardSize);
+    }
+
+    return result;
+}
+
+/**
+ * Generate an even/odd constraint map from the solution.
+ * Marks ~35% of ALL cells with their parity (1=odd, 2=even).
+ */
+function generateEvenOddMap(solution, boardSize) {
+    const map = Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (Math.random() < 0.35) {
+                map[r][c] = solution[r][c] % 2 === 0 ? 2 : 1; // 2=even, 1=odd
+            }
+        }
+    }
+    return map;
+}
+
+// ---- cage generation (killer) ----
+function getNeighborsWorker(row, col, boardSize) {
+    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    return dirs
+        .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+        .filter(c => c.row >= 0 && c.row < boardSize && c.col >= 0 && c.col < boardSize);
+}
+
+function generateCagesWorker(solution, boardSize) {
+    const assigned = Array.from({ length: boardSize }, () => Array(boardSize).fill(false));
+    const cages = [];
+    const allCells = shuffle(
+        Array.from({ length: boardSize * boardSize }, (_, i) => ({
+            row: Math.floor(i / boardSize),
+            col: i % boardSize,
+        }))
+    );
+
+    for (const start of allCells) {
+        if (assigned[start.row][start.col]) continue;
+        const cageSize = randomInt(2, 4);
+        const cage = [start];
+        assigned[start.row][start.col] = true;
+        const frontier = getNeighborsWorker(start.row, start.col, boardSize)
+            .filter(n => !assigned[n.row][n.col]);
+        shuffle(frontier);
+        while (cage.length < cageSize && frontier.length > 0) {
+            const next = frontier.pop();
+            if (assigned[next.row][next.col]) continue;
+            cage.push(next);
+            assigned[next.row][next.col] = true;
+            const newNeighbors = getNeighborsWorker(next.row, next.col, boardSize)
+                .filter(n => !assigned[n.row][n.col]);
+            for (const n of shuffle(newNeighbors)) {
+                frontier.push(n);
+            }
+        }
+        const sum = cage.reduce((s, c) => s + solution[c.row][c.col], 0);
+        cages.push({ cells: cage, sum });
+    }
+    return cages;
 }
 
 // ---- Worker message handler ----

@@ -65,11 +65,33 @@ export function initModeSelectScreen(app) {
         });
     });
 
+    // Variants that only support 9x9
+    const NINE_ONLY_VARIANTS = new Set(['anti-knight', 'anti-king', 'even-odd', 'windoku', 'killer']);
+
+    function updateBoardSizeRestriction(variant) {
+        const restricted = NINE_ONLY_VARIANTS.has(variant);
+        sizeOptions.forEach(btn => {
+            const size = parseInt(btn.dataset.size, 10);
+            if (restricted && size !== 9) {
+                btn.classList.add('disabled');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('disabled');
+                btn.disabled = false;
+            }
+        });
+        if (restricted && selectedBoardSize !== 9) {
+            selectedBoardSize = 9;
+            sizeOptions.forEach(b => b.classList.toggle('active', parseInt(b.dataset.size, 10) === 9));
+        }
+    }
+
     variantOptions.forEach(btn => {
         btn.addEventListener('click', () => {
             variantOptions.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             selectedVariant = btn.dataset.variant;
+            updateBoardSizeRestriction(selectedVariant);
         });
     });
 
@@ -122,9 +144,11 @@ export function initModeSelectScreen(app) {
             b.classList.toggle('active', parseInt(b.dataset.duration, 10) === 600);
         });
 
-        // Reset size options (activate 9x9)
+        // Reset size options (activate 9x9, re-enable all)
         sizeOptions.forEach(b => {
             b.classList.toggle('active', parseInt(b.dataset.size, 10) === 9);
+            b.classList.remove('disabled');
+            b.disabled = false;
         });
 
         // Reset variant options (activate standard)

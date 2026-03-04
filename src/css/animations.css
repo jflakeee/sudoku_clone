@@ -282,16 +282,56 @@
   100% { background-position: 200% 0; }
 }
 
+/* --- Input Bounce (number placed in cell) --- */
+@keyframes inputBounce {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.cell-value.animate-in {
+  animation: inputBounce 0.25s ease-out;
+}
+
+/* --- Cell Wave (completion, distance-from-center stagger) --- */
+@keyframes cellWave {
+  0%   { transform: scale(1); background-color: var(--bg-white); }
+  50%  { transform: scale(1.1); background-color: var(--primary-light); }
+  100% { transform: scale(1); background-color: var(--bg-white); }
+}
+
+.cell.cell-wave {
+  animation: cellWave 0.4s ease-out;
+}
+
+/* --- Note Fade In --- */
+@keyframes noteFadeIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.note-number.animate-note {
+  animation: noteFadeIn 0.15s ease-out;
+}
+
 /* --- Number Pad Press --- */
+.num-btn {
+  transition: transform 0.1s ease-out;
+}
+
 .num-btn:active {
   transform: scale(0.92);
-  transition: transform 80ms ease;
+  transition: transform 0.05s;
 }
 
 /* --- Toolbar Press --- */
+.tool-btn {
+  transition: transform 0.1s ease-out;
+}
+
 .tool-btn:active {
   transform: scale(0.9);
-  transition: transform 80ms ease;
+  transition: transform 0.05s;
 }
 
 /* --- Timer Warning Pulse (30 seconds remaining) --- */

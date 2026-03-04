@@ -204,11 +204,112 @@ export function generatePuzzle(difficulty, boardSize = 9, dailyDate = null, vari
     // 3. Build the "given" mask
     const given = board.map(row => row.map(cell => cell !== 0));
 
-    return {
+    const result = {
         board,
         solution,
         given,
         difficulty,
         variant,
     };
+
+    // Generate evenOddMap for even-odd variant
+    if (variant === 'even-odd') {
+        result.evenOddMap = generateEvenOddMap(solution, boardSize);
+    }
+
+    // Generate cages for killer variant
+    if (variant === 'killer') {
+        result.cages = generateCages(solution, boardSize);
+    }
+
+    return result;
+}
+
+/**
+ * Generate cages for killer sudoku by grouping adjacent cells.
+ * Each cage has 2-4 cells with a target sum from the solution.
+ *
+ * @param {number[][]} solution - Complete solution board
+ * @param {number} boardSize - Board dimension
+ * @returns {{cells: {row: number, col: number}[], sum: number}[]}
+ */
+export function generateCages(solution, boardSize) {
+    const assigned = Array.from({ length: boardSize }, () => Array(boardSize).fill(false));
+    const cages = [];
+
+    // Shuffle all cell positions
+    const allCells = shuffle(
+        Array.from({ length: boardSize * boardSize }, (_, i) => ({
+            row: Math.floor(i / boardSize),
+            col: i % boardSize,
+        }))
+    );
+
+    for (const start of allCells) {
+        if (assigned[start.row][start.col]) continue;
+
+        // BFS to grow cage from start cell
+        const cageSize = randomInt(2, 4);
+        const cage = [start];
+        assigned[start.row][start.col] = true;
+
+        const frontier = getNeighbors(start.row, start.col, boardSize)
+            .filter(n => !assigned[n.row][n.col]);
+        shuffle(frontier);
+
+        while (cage.length < cageSize && frontier.length > 0) {
+            const next = frontier.pop();
+            if (assigned[next.row][next.col]) continue;
+
+            cage.push(next);
+            assigned[next.row][next.col] = true;
+
+            // Add new neighbors to frontier
+            const newNeighbors = getNeighbors(next.row, next.col, boardSize)
+                .filter(n => !assigned[n.row][n.col]);
+            for (const n of shuffle(newNeighbors)) {
+                frontier.push(n);
+            }
+        }
+
+        const sum = cage.reduce((s, c) => s + solution[c.row][c.col], 0);
+        cages.push({ cells: cage, sum });
+    }
+
+    return cages;
+}
+
+/**
+ * Get orthogonally adjacent cells.
+ *
+ * @param {number} row
+ * @param {number} col
+ * @param {number} boardSize
+ * @returns {{row: number, col: number}[]}
+ */
+function getNeighbors(row, col, boardSize) {
+    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    return dirs
+        .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+        .filter(c => c.row >= 0 && c.row < boardSize && c.col >= 0 && c.col < boardSize);
+}
+
+/**
+ * Generate an even/odd constraint map from the solution.
+ * Marks ~35% of ALL cells with their parity (1=odd, 2=even).
+ *
+ * @param {number[][]} solution - Complete solution board
+ * @param {number} boardSize - Board dimension
+ * @returns {number[][]} Map where 0=none, 1=odd, 2=even
+ */
+function generateEvenOddMap(solution, boardSize) {
+    const map = Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (Math.random() < 0.35) {
+                map[r][c] = solution[r][c] % 2 === 0 ? 2 : 1;
+            }
+        }
+    }
+    return map;
 }

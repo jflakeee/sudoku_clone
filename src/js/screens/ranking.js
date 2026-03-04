@@ -31,6 +31,8 @@ const DIFFICULTIES = ['easy', 'normal', 'hard', 'expert', 'master'];
 let _period = 'all';
 let _difficulty = 'all';
 let _mode = 'all';
+let _size = 'all';
+let _variant = 'all';
 
 // ---------------------------------------------------------------------------
 // Filtering helpers
@@ -92,6 +94,13 @@ function filterEntries(entries) {
     }
     if (_mode !== 'all') {
         result = result.filter(e => e.mode === _mode);
+    }
+    if (_size !== 'all') {
+        const sz = Number(_size);
+        result = result.filter(e => (e.boardSize || 9) === sz);
+    }
+    if (_variant !== 'all') {
+        result = result.filter(e => (e.variant || 'standard') === _variant);
     }
     return result.sort((a, b) => (b.score || 0) - (a.score || 0) || (a.time || 0) - (b.time || 0));
 }
@@ -270,6 +279,24 @@ export function initRankingScreen(app) {
         });
     }
 
+    // Size select
+    const sizeSelect = document.getElementById('ranking-size');
+    if (sizeSelect) {
+        sizeSelect.addEventListener('change', () => {
+            _size = sizeSelect.value;
+            refresh();
+        });
+    }
+
+    // Variant select
+    const variantSelect = document.getElementById('ranking-variant');
+    if (variantSelect) {
+        variantSelect.addEventListener('change', () => {
+            _variant = variantSelect.value;
+            refresh();
+        });
+    }
+
     // Screen show listener
     document.addEventListener('screen-show', (e) => {
         const detail = /** @type {CustomEvent} */ (e).detail;
@@ -278,6 +305,8 @@ export function initRankingScreen(app) {
             _period = 'all';
             _difficulty = 'all';
             _mode = 'all';
+            _size = 'all';
+            _variant = 'all';
 
             if (tabsEl) {
                 tabsEl.querySelectorAll('.ranking-tab').forEach(t => {
@@ -286,6 +315,8 @@ export function initRankingScreen(app) {
             }
             if (diffSelect) diffSelect.value = 'all';
             if (modeSelect) modeSelect.value = 'all';
+            if (sizeSelect) sizeSelect.value = 'all';
+            if (variantSelect) variantSelect.value = 'all';
 
             refresh();
         }

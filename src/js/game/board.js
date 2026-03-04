@@ -103,6 +103,15 @@ export class Board {
 
         /** @type {string} Game variant ('standard' or 'diagonal'). */
         this.variant = 'standard';
+
+        /** @type {number[][]|null} Cell color markings (0 = none, 1-6 = color index). */
+        this._cellColors = null;
+
+        /** @type {number[][]|null} Even/Odd constraint map (0=none, 1=odd, 2=even). */
+        this._evenOddMap = null;
+
+        /** @type {Array<{cells: {row: number, col: number}[], sum: number}>|null} Killer cages. */
+        this._cages = null;
     }
 
     // -----------------------------------------------------------------------
@@ -161,8 +170,12 @@ export class Board {
         this._gameOver = false;
         this.mode = mode;
         this._initialPuzzle = this._board.map(r => [...r]);
+        this._cellColors = null;
+        this._evenOddMap = puzzle.evenOddMap || null;
+        this._cages = puzzle.cages || null;
 
         this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
+        if (this.variant === 'killer' && this._cages) this.notes.extraData = { cages: this._cages };
         this.history = new History();
         this.timer.reset();
         this.timer.start();
@@ -191,9 +204,13 @@ export class Board {
         this._dailyDate = savedState.dailyDate || null;
         this._gameOver = savedState.gameOver || false;
         this.mode = savedState.mode || 'classic';
+        this._cellColors = savedState.cellColors || null;
+        this._evenOddMap = savedState.evenOddMap || null;
+        this._cages = savedState.cages || null;
 
         // Notes
         this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
+        if (this.variant === 'killer' && this._cages) this.notes.extraData = { cages: this._cages };
         if (savedState.notes) {
             this.notes.fromJSON(savedState.notes);
         }
@@ -236,6 +253,12 @@ export class Board {
             mode: this.mode,
             boardSize: this.boardSize,
             variant: this.variant,
+            cellColors: this._cellColors ? this._cellColors.map(r => [...r]) : null,
+            evenOddMap: this._evenOddMap ? this._evenOddMap.map(r => [...r]) : null,
+            cages: this._cages ? this._cages.map(c => ({
+                cells: c.cells.map(cell => ({ ...cell })),
+                sum: c.sum,
+            })) : null,
         };
     }
 
@@ -311,9 +334,10 @@ export class Board {
         );
 
         // Get conflicts for visual feedback
+        const extraData = this.variant === 'killer' && this._cages ? { cages: this._cages } : null;
         const conflicts = checkConflicts(
             this._board, row, col, num,
-            this.boardSize, this.blockSize, this.variant
+            this.boardSize, this.blockSize, this.variant, extraData
         );
 
         let score = 0;
@@ -444,6 +468,26 @@ export class Board {
     }
 
     /**
+     * Calculate the current game progress as a percentage (0-100).
+     * Based on how many non-given cells have been filled.
+     *
+     * @returns {number}
+     */
+    getProgress() {
+        let filled = 0;
+        let total = 0;
+        for (let r = 0; r < this.boardSize; r++) {
+            for (let c = 0; c < this.boardSize; c++) {
+                if (!this._given[r][c]) {
+                    total++;
+                    if (this._board[r][c] > 0) filled++;
+                }
+            }
+        }
+        return total === 0 ? 100 : Math.round((filled / total) * 100);
+    }
+
+    /**
      * Whether the game is fully completed (all cells correct).
      *
      * @returns {boolean}
@@ -504,6 +548,24 @@ export class Board {
      */
     getGiven() {
         return this._given;
+    }
+
+    /**
+     * Even/Odd constraint map (0=none, 1=odd, 2=even).
+     *
+     * @returns {number[][]|null}
+     */
+    getEvenOddMap() {
+        return this._evenOddMap;
+    }
+
+    /**
+     * Killer cages array.
+     *
+     * @returns {Array<{cells: {row: number, col: number}[], sum: number}>|null}
+     */
+    getCages() {
+        return this._cages;
     }
 
     /**
@@ -591,8 +653,12 @@ export class Board {
         this._dailyDate = options.dailyDate || null;
         this._gameOver = false;
         this.mode = mode;
+        this._cellColors = null;
+        this._evenOddMap = options.evenOddMap || null;
+        this._cages = options.cages || null;
 
         this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
+        if (this.variant === 'killer' && this._cages) this.notes.extraData = { cages: this._cages };
         this.history = new History();
         this.timer.reset();
         this.timer.start();
@@ -638,7 +704,11 @@ export class Board {
                     this._gameOver = false;
                     this.mode = mode;
                     this._initialPuzzle = this._board.map(r => [...r]);
+                    this._cellColors = null;
+                    this._evenOddMap = puzzle.evenOddMap || null;
+                    this._cages = puzzle.cages || null;
                     this.notes = new Notes(this.boardSize, this.blockSize, this.variant);
+                    if (this.variant === 'killer' && this._cages) this.notes.extraData = { cages: this._cages };
                     this.history = new History();
                     this.timer.reset();
                     this.timer.start();
@@ -655,6 +725,45 @@ export class Board {
 
             worker.postMessage({ difficulty, boardSize: this.boardSize, variant: this.variant });
         });
+    }
+
+    // -----------------------------------------------------------------------
+    // Cell color marking
+    // -----------------------------------------------------------------------
+
+    /**
+     * Set a color marking on a cell.
+     *
+     * @param {number} row
+     * @param {number} col
+     * @param {number} colorIdx - 0 to clear, 1-6 for a color.
+     */
+    setCellColor(row, col, colorIdx) {
+        if (!this._cellColors) {
+            if (colorIdx === 0) return;
+            this._cellColors = Array.from({ length: this.boardSize },
+                () => Array(this.boardSize).fill(0));
+        }
+        this._cellColors[row][col] = colorIdx;
+    }
+
+    /**
+     * Get the color marking of a cell.
+     *
+     * @param {number} row
+     * @param {number} col
+     * @returns {number} 0 if no color, 1-6 for a color index.
+     */
+    getCellColor(row, col) {
+        if (!this._cellColors) return 0;
+        return this._cellColors[row][col] || 0;
+    }
+
+    /**
+     * Clear all color markings.
+     */
+    clearAllColors() {
+        this._cellColors = null;
     }
 
     // -----------------------------------------------------------------------

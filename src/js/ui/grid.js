@@ -10,6 +10,7 @@
  */
 
 import { getBlockSize } from '../core/board-config.js';
+import { getCSSClass } from '../core/variant-rules.js';
 
 // ---------------------------------------------------------------------------
 // GridUI class
@@ -98,6 +99,38 @@ export class GridUI {
         if (state) {
             cell.classList.add(state);
         }
+
+        // ARIA: update label to reflect current cell state
+        const r = parseInt(cell.getAttribute('data-row'), 10);
+        const c = parseInt(cell.getAttribute('data-col'), 10);
+        if (value !== 0) {
+            const stateLabel = state === 'given' ? '주어진 값' : '입력값';
+            cell.setAttribute('aria-label', `행 ${r + 1}, 열 ${c + 1}, ${stateLabel} ${value}`);
+        } else {
+            cell.setAttribute('aria-label', `행 ${r + 1}, 열 ${c + 1}, 빈 셀`);
+        }
+    }
+
+    /**
+     * Play an input-bounce animation on the cell value element.
+     *
+     * @param {number} row
+     * @param {number} col
+     */
+    animateValueBounce(row, col) {
+        const cell = this.getCell(row, col);
+        if (!cell) return;
+
+        const valueEl = cell.querySelector('.cell-value');
+        if (!valueEl) return;
+
+        valueEl.classList.remove('animate-in');
+        void valueEl.offsetWidth;
+        valueEl.classList.add('animate-in');
+
+        valueEl.addEventListener('animationend', () => {
+            valueEl.classList.remove('animate-in');
+        }, { once: true });
     }
 
     /**
@@ -107,7 +140,7 @@ export class GridUI {
      * @param {number} col
      * @param {Set<number>|number[]} notes - The set/array of note digits (1-9).
      */
-    showNotes(row, col, notes) {
+    showNotes(row, col, notes, animate = false) {
         const cell = this.getCell(row, col);
         if (!cell) return;
 
@@ -123,7 +156,19 @@ export class GridUI {
         for (let n = 1; n <= this._gridSize; n++) {
             const noteSpan = notesEl.querySelector(`.note-${n}`);
             if (noteSpan) {
-                noteSpan.textContent = noteSet.has(n) ? String(n) : '';
+                const had = noteSpan.textContent !== '';
+                const has = noteSet.has(n);
+                noteSpan.textContent = has ? String(n) : '';
+
+                // Animate newly appearing notes
+                if (animate && has && !had) {
+                    noteSpan.classList.remove('animate-note');
+                    void noteSpan.offsetWidth;
+                    noteSpan.classList.add('animate-note');
+                    noteSpan.addEventListener('animationend', () => {
+                        noteSpan.classList.remove('animate-note');
+                    }, { once: true });
+                }
             }
         }
     }
@@ -258,6 +303,58 @@ export class GridUI {
     }
 
     // -----------------------------------------------------------------------
+    // Cell color marking
+    // -----------------------------------------------------------------------
+
+    /**
+     * Marking color palette (index → CSS background color).
+     * @type {(string|null)[]}
+     */
+    static MARKING_COLORS = [
+        null,                      // 0: none
+        'rgba(255, 235, 59, 0.35)', // 1: yellow
+        'rgba(76, 175, 80, 0.35)',  // 2: green
+        'rgba(33, 150, 243, 0.35)', // 3: blue
+        'rgba(255, 152, 0, 0.35)',  // 4: orange
+        'rgba(156, 39, 176, 0.35)', // 5: purple
+        'rgba(244, 67, 54, 0.35)',  // 6: red
+    ];
+
+    /**
+     * Set the marking color on a cell's DOM element.
+     *
+     * @param {number} row
+     * @param {number} col
+     * @param {number} colorIdx - 0 to clear, 1-6 for a color.
+     */
+    setCellColor(row, col, colorIdx) {
+        const cell = this.getCell(row, col);
+        if (!cell) return;
+
+        // Remove any existing marking-color-* class
+        for (let i = 1; i <= 6; i++) {
+            cell.classList.remove(`marking-color-${i}`);
+        }
+
+        if (colorIdx > 0 && colorIdx <= 6) {
+            cell.classList.add(`marking-color-${colorIdx}`);
+        }
+    }
+
+    /**
+     * Render all cell color markings from a Board instance.
+     *
+     * @param {import('../game/board.js').Board} board
+     */
+    renderAllColors(board) {
+        for (let r = 0; r < this._gridSize; r++) {
+            for (let c = 0; c < this._gridSize; c++) {
+                this.setCellColor(r, c, board.getCellColor(r, c));
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Event delegation
     // -----------------------------------------------------------------------
 
@@ -297,12 +394,21 @@ export class GridUI {
         this._container.style.gridTemplateColumns = `repeat(${this._gridSize}, 1fr)`;
         this._container.style.gridTemplateRows = `repeat(${this._gridSize}, 1fr)`;
 
+        // ARIA: mark the grid as a grid landmark
+        this._container.setAttribute('role', 'grid');
+        this._container.setAttribute('aria-label', `${this._gridSize}x${this._gridSize} 스도쿠 그리드`);
+
         for (let r = 0; r < this._gridSize; r++) {
             for (let c = 0; c < this._gridSize; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.setAttribute('data-row', String(r));
                 cell.setAttribute('data-col', String(c));
+
+                // ARIA: gridcell role with descriptive label
+                cell.setAttribute('role', 'gridcell');
+                cell.setAttribute('tabindex', '-1');
+                cell.setAttribute('aria-label', `행 ${r + 1}, 열 ${c + 1}, 빈 셀`);
 
                 // Add block-boundary classes for thicker CSS borders
                 if (c % this._blockSize.cols === 0 && c !== 0) cell.classList.add('block-left');
@@ -312,10 +418,9 @@ export class GridUI {
                 if (c === this._gridSize - 1) cell.classList.add('last-col');
                 if (r === this._gridSize - 1) cell.classList.add('last-row');
 
-                // Diagonal cells
-                if (this._variant === 'diagonal') {
-                    if (r === c || r + c === this._gridSize - 1) cell.classList.add('diagonal');
-                }
+                // Variant-specific CSS class
+                const variantClass = getCSSClass(this._variant, r, c, this._gridSize);
+                if (variantClass) cell.classList.add(variantClass);
 
                 // Value element
                 const valueSpan = document.createElement('span');
@@ -359,6 +464,85 @@ export class GridUI {
             for (let n = 1; n <= this._gridSize; n++) {
                 const noteSpan = notesEl.querySelector(`.note-${n}`);
                 if (noteSpan) noteSpan.textContent = '';
+            }
+        }
+    }
+
+    /**
+     * Render killer cages on the grid with dashed borders and sum labels.
+     *
+     * @param {Array<{cells: {row: number, col: number}[], sum: number}>} cages
+     */
+    renderCages(cages) {
+        if (!cages || cages.length === 0) return;
+
+        this.clearCages();
+
+        for (const cage of cages) {
+            const cellSet = new Set(cage.cells.map(c => c.row * this._gridSize + c.col));
+
+            for (const { row, col } of cage.cells) {
+                const cell = this.getCell(row, col);
+                if (!cell) continue;
+
+                cell.classList.add('cage-cell');
+
+                if (!cellSet.has((row - 1) * this._gridSize + col)) {
+                    cell.classList.add('cage-border-top');
+                }
+                if (!cellSet.has((row + 1) * this._gridSize + col)) {
+                    cell.classList.add('cage-border-bottom');
+                }
+                if (!cellSet.has(row * this._gridSize + (col - 1))) {
+                    cell.classList.add('cage-border-left');
+                }
+                if (!cellSet.has(row * this._gridSize + (col + 1))) {
+                    cell.classList.add('cage-border-right');
+                }
+            }
+
+            const sorted = [...cage.cells].sort((a, b) => a.row - b.row || a.col - b.col);
+            const firstCell = this.getCell(sorted[0].row, sorted[0].col);
+            if (firstCell) {
+                const sumEl = document.createElement('span');
+                sumEl.className = 'cage-sum';
+                sumEl.textContent = String(cage.sum);
+                firstCell.appendChild(sumEl);
+            }
+        }
+    }
+
+    /**
+     * Clear all cage-related classes and elements.
+     */
+    clearCages() {
+        for (let r = 0; r < this._gridSize; r++) {
+            for (let c = 0; c < this._gridSize; c++) {
+                const cell = this.getCell(r, c);
+                if (!cell) continue;
+                cell.classList.remove('cage-cell', 'cage-border-top', 'cage-border-bottom', 'cage-border-left', 'cage-border-right');
+                const sumEl = cell.querySelector('.cage-sum');
+                if (sumEl) sumEl.remove();
+            }
+        }
+    }
+
+    /**
+     * Apply even/odd CSS classes based on an evenOddMap.
+     *
+     * @param {number[][]|null} evenOddMap - 0=none, 1=odd, 2=even
+     */
+    applyEvenOddMap(evenOddMap) {
+        for (let r = 0; r < this._gridSize; r++) {
+            for (let c = 0; c < this._gridSize; c++) {
+                const cell = this.getCell(r, c);
+                if (!cell) continue;
+                cell.classList.remove('cell-even', 'cell-odd');
+                if (evenOddMap && evenOddMap[r] && evenOddMap[r][c] === 2) {
+                    cell.classList.add('cell-even');
+                } else if (evenOddMap && evenOddMap[r] && evenOddMap[r][c] === 1) {
+                    cell.classList.add('cell-odd');
+                }
             }
         }
     }
