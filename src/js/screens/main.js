@@ -12,19 +12,7 @@ import { loadUserXP } from '../utils/xp.js';
 import { getWeeklyConfig, getWeekNumber } from '../utils/weekly-seed.js';
 import { getActiveTitleLabel } from '../utils/titles.js';
 import { decodePuzzle } from '../utils/puzzle-share.js';
-
-// ---------------------------------------------------------------------------
-// Difficulty label helper
-// ---------------------------------------------------------------------------
-
-const DIFFICULTY_LABELS = {
-    easy: '쉬움',
-    medium: '보통',
-    normal: '보통',
-    hard: '어려움',
-    expert: '전문가',
-    master: '마스터',
-};
+import { DIFFICULTY_LABELS, VARIANT_LABELS } from '../utils/constants.js';
 
 // ---------------------------------------------------------------------------
 // DOM references (resolved once during init)
@@ -288,7 +276,6 @@ function updateWeeklyCard() {
 
     if (diffEl) diffEl.textContent = DIFFICULTY_LABELS[config.difficulty] || config.difficulty;
     if (variantEl) {
-        const VARIANT_LABELS = { standard: '기본', diagonal: '대각선' };
         variantEl.textContent = VARIANT_LABELS[config.variant] || config.variant;
     }
     if (periodEl) {

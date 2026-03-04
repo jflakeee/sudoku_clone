@@ -8,19 +8,12 @@
 
 import { loadGameHistory, getGameHistoryById } from '../utils/storage.js';
 import { encodePuzzle } from '../utils/puzzle-share.js';
+import { DIFFICULTY_LABELS } from '../utils/constants.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const DIFFICULTY_LABELS = {
-    easy: '쉬움',
-    medium: '보통',
-    normal: '보통',
-    hard: '어려움',
-    expert: '전문가',
-    master: '마스터',
-};
 
 const MODE_LABELS = {
     classic: '클래식',

@@ -19,6 +19,7 @@ import { Notes } from './notes.js';
 import { History } from './history.js';
 import { Timer } from './timer.js';
 import { getDailySeed, seededRandom } from '../utils/daily-seed.js';
+import { DIFFICULTY_LABELS } from '../utils/constants.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -29,16 +30,6 @@ const MAX_MISTAKES = 3;
 
 /** Default hints available per game. */
 const DEFAULT_HINTS = 3;
-
-/** Difficulty key to Korean label mapping. */
-const DIFFICULTY_LABELS = {
-    easy:   '쉬움',
-    normal: '보통',
-    medium: '보통',
-    hard:   '어려움',
-    expert: '전문가',
-    master: '마스터',
-};
 
 // ---------------------------------------------------------------------------
 // Board class

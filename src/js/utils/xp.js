@@ -14,6 +14,41 @@
 const STORAGE_KEY = 'sudoku_userXP';
 
 // ---------------------------------------------------------------------------
+// XP multipliers — applied cumulatively to base XP on game completion
+// ---------------------------------------------------------------------------
+
+const XP_MULTIPLIERS = {
+    /** Time-attack mode rewards urgency and risk */
+    timeAttackMode: 1.5,
+    /** Non-standard variants (diagonal, etc.) add extra constraint complexity */
+    nonStandardVariant: 1.3,
+    /** 12x12 boards have ~78% more cells than 9x9 */
+    largeBoardSize12: 1.2,
+    /** 16x16 boards have ~216% more cells than 9x9 */
+    largeBoardSize16: 1.5,
+    /** Completing a puzzle with zero mistakes */
+    perfectNoMistakes: 1.5,
+    /** Finishing faster than the median time for the difficulty */
+    speedBonus: 1.2,
+};
+
+// ---------------------------------------------------------------------------
+// Base XP awarded per difficulty — reflects puzzle complexity and average solve effort
+// ---------------------------------------------------------------------------
+
+const BASE_XP = {
+    easy: 20,
+    medium: 40,
+    normal: 40,
+    hard: 70,
+    expert: 100,
+    master: 150,
+};
+
+/** Fallback base XP when difficulty is unknown */
+const BASE_XP_DEFAULT = 20;
+
+// ---------------------------------------------------------------------------
 // Level table (quadratic growth)
 // Level N requires cumulative XP = sum of (k*50 + (k-1)*25) for k=2..N
 // Max level: 99
@@ -81,7 +116,8 @@ export function getLevelFromXP(xp) {
 }
 
 // ---------------------------------------------------------------------------
-// Median times by difficulty (seconds) - for time bonus calculation
+// Median times by difficulty (seconds) — approximate 50th-percentile solve
+// times used as the threshold for the speed bonus multiplier
 // ---------------------------------------------------------------------------
 
 const MEDIAN_TIMES = {
@@ -92,6 +128,9 @@ const MEDIAN_TIMES = {
     expert: 1200,   // 20 min
     master: 1800,   // 30 min
 };
+
+/** Fallback median time (seconds) when difficulty is unknown */
+const MEDIAN_TIME_DEFAULT = 600;
 
 /**
  * Calculate XP earned for a completed game.
@@ -105,45 +144,37 @@ const MEDIAN_TIMES = {
  * @returns {number} XP earned (rounded integer).
  */
 export function calculateGameXP(difficulty, mode, variant, boardSize, mistakes, timeSeconds) {
-    // Base XP by difficulty
-    const BASE_XP = {
-        easy: 20,
-        medium: 40,
-        normal: 40,
-        hard: 70,
-        expert: 100,
-        master: 150,
-    };
+    let baseXP = BASE_XP[difficulty] || BASE_XP_DEFAULT;
 
-    let baseXP = BASE_XP[difficulty] || 20;
+    // Accumulate multipliers from game conditions
+    let multiplier = 1;
 
     // Mode multiplier
-    let multiplier = 1;
     if (mode === 'timeAttack') {
-        multiplier *= 1.5;
+        multiplier *= XP_MULTIPLIERS.timeAttackMode;
     }
 
     // Variant bonus (non-standard)
     if (variant && variant !== 'standard') {
-        multiplier *= 1.3;
+        multiplier *= XP_MULTIPLIERS.nonStandardVariant;
     }
 
     // Board size bonus
     if (boardSize === 12) {
-        multiplier *= 1.2;
+        multiplier *= XP_MULTIPLIERS.largeBoardSize12;
     } else if (boardSize === 16) {
-        multiplier *= 1.5;
+        multiplier *= XP_MULTIPLIERS.largeBoardSize16;
     }
 
     // Perfect bonus (0 mistakes)
     if (mistakes === 0) {
-        multiplier *= 1.5;
+        multiplier *= XP_MULTIPLIERS.perfectNoMistakes;
     }
 
     // Time bonus: under median time for difficulty
-    const median = MEDIAN_TIMES[difficulty] || 600;
+    const median = MEDIAN_TIMES[difficulty] || MEDIAN_TIME_DEFAULT;
     if (timeSeconds > 0 && timeSeconds < median) {
-        multiplier *= 1.2;
+        multiplier *= XP_MULTIPLIERS.speedBonus;
     }
 
     return Math.round(baseXP * multiplier);

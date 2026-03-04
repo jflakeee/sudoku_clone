@@ -13,6 +13,26 @@ import { getBlockSize } from '../core/board-config.js';
 import { getCSSClass } from '../core/variant-rules.js';
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Cell marking color palette (index -> CSS background color).
+ * Index 0 means no marking; indices 1-6 map to distinct translucent colors
+ * used for manual cell highlighting by the player.
+ * @type {(string|null)[]}
+ */
+const MARKING_COLORS = [
+    null,                       // 0: none
+    'rgba(255, 235, 59, 0.35)', // 1: yellow
+    'rgba(76, 175, 80, 0.35)',  // 2: green
+    'rgba(33, 150, 243, 0.35)', // 3: blue
+    'rgba(255, 152, 0, 0.35)',  // 4: orange
+    'rgba(156, 39, 176, 0.35)', // 5: purple
+    'rgba(244, 67, 54, 0.35)',  // 6: red
+];
+
+// ---------------------------------------------------------------------------
 // GridUI class
 // ---------------------------------------------------------------------------
 
@@ -306,19 +326,8 @@ export class GridUI {
     // Cell color marking
     // -----------------------------------------------------------------------
 
-    /**
-     * Marking color palette (index → CSS background color).
-     * @type {(string|null)[]}
-     */
-    static MARKING_COLORS = [
-        null,                      // 0: none
-        'rgba(255, 235, 59, 0.35)', // 1: yellow
-        'rgba(76, 175, 80, 0.35)',  // 2: green
-        'rgba(33, 150, 243, 0.35)', // 3: blue
-        'rgba(255, 152, 0, 0.35)',  // 4: orange
-        'rgba(156, 39, 176, 0.35)', // 5: purple
-        'rgba(244, 67, 54, 0.35)',  // 6: red
-    ];
+    /** @see MARKING_COLORS module-level constant */
+    static MARKING_COLORS = MARKING_COLORS;
 
     /**
      * Set the marking color on a cell's DOM element.

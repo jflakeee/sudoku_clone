@@ -10,19 +10,7 @@
 import { loadGame, saveGame, clearGame, loadStats, saveStats } from '../utils/storage.js';
 import { animateCompletionWave } from '../ui/animations.js';
 import { getCandidates } from '../core/solver.js';
-
-// ---------------------------------------------------------------------------
-// Difficulty label map
-// ---------------------------------------------------------------------------
-
-const DIFFICULTY_LABELS = {
-    easy: '쉬움',
-    medium: '보통',
-    normal: '보통',
-    hard: '어려움',
-    expert: '전문가',
-    master: '마스터',
-};
+import { DIFFICULTY_LABELS, VARIANT_LABELS } from '../utils/constants.js';
 
 // ---------------------------------------------------------------------------
 // DOM references
@@ -535,7 +523,6 @@ function resetGameUI(difficulty) {
         if (v && v !== 'standard') {
             variantEl.style.display = '';
             if (variantValueEl) {
-                const VARIANT_LABELS = { diagonal: '대각선', 'anti-knight': '안티나이트', 'anti-king': '안티킹', 'even-odd': '짝홀', windoku: '윈도쿠', killer: '킬러' };
                 variantValueEl.textContent = VARIANT_LABELS[v] || v;
             }
         } else {

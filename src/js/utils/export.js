@@ -6,6 +6,7 @@
  */
 
 import { getBlockSize } from '../core/board-config.js';
+import { DIFFICULTY_LABELS } from './constants.js';
 
 // ---------------------------------------------------------------------------
 // Layout constants
@@ -14,14 +15,6 @@ import { getBlockSize } from '../core/board-config.js';
 const LAYOUT_COLS = { single: 1, dual: 1, quad: 2, six: 2, eight: 2 };
 const LAYOUT_ROWS = { single: 1, dual: 2, quad: 2, six: 3, eight: 4 };
 
-const DIFFICULTY_LABELS = {
-    easy: '쉬움',
-    medium: '보통',
-    normal: '보통',
-    hard: '어려움',
-    expert: '전문가',
-    master: '마스터',
-};
 
 /** System font stack matching the app's CSS */
 const FONT_FAMILY = '"Segoe UI", system-ui, -apple-system, sans-serif';

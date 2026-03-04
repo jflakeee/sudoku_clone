@@ -33,6 +33,7 @@ import { initPrintScreen } from './screens/print.js';
 import { generatePuzzle } from './core/generator.js';
 import { decodePuzzle } from './utils/puzzle-share.js';
 import { setLocale } from './utils/i18n.js';
+import { DIFFICULTY_LABELS } from './utils/constants.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -43,16 +44,6 @@ const NAVBAR_SCREENS = new Set(['main', 'daily', 'profile']);
 
 /** Auto-save interval in milliseconds. */
 const AUTO_SAVE_INTERVAL = 30_000;
-
-/** Difficulty label map (key → Korean). */
-const DIFFICULTY_LABELS = {
-    easy: '쉬움',
-    medium: '보통',
-    normal: '보통',
-    hard: '어려움',
-    expert: '전문가',
-    master: '마스터',
-};
 
 // ---------------------------------------------------------------------------
 // App state

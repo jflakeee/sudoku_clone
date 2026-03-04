@@ -38,8 +38,11 @@ export class TimeChart {
 
         ctx.clearRect(0, 0, width, height);
 
+        // Read CSS custom properties once so the chart adapts to the active theme
+        const style = getComputedStyle(document.documentElement);
+
         if (!data || data.length < 2) {
-            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-muted').trim() || '#999';
+            ctx.fillStyle = style.getPropertyValue('--text-muted').trim() || '#999';
             ctx.font = '14px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -56,9 +59,9 @@ export class TimeChart {
         const minTime = Math.min(...times);
         const range = maxTime - minTime || 60; // At least 60s range
 
-        const primaryColor = getComputedStyle(document.body).getPropertyValue('--primary').trim() || '#2979FF';
-        const mutedColor = getComputedStyle(document.body).getPropertyValue('--text-muted').trim() || '#999';
-        const borderColor = getComputedStyle(document.body).getPropertyValue('--cell-border').trim() || '#e0e0e0';
+        const primaryColor = style.getPropertyValue('--primary').trim() || '#2979FF';
+        const mutedColor = style.getPropertyValue('--text-muted').trim() || '#999';
+        const borderColor = style.getPropertyValue('--cell-border').trim() || '#e0e0e0';
 
         // --- Grid lines ---
         const gridLines = 4;
@@ -156,12 +159,14 @@ export class TimeChart {
         ctx.fill();
 
         // --- Data points ---
+        const bgColor = style.getPropertyValue('--bg-main').trim() || '#fff';
+
         points.forEach(p => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
             ctx.fillStyle = primaryColor;
             ctx.fill();
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = bgColor;
             ctx.lineWidth = 1.5;
             ctx.stroke();
         });

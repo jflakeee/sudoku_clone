@@ -15,19 +15,7 @@ import { checkAchievements } from '../utils/achievements.js';
 import { calculateGameXP, addXP, getLevelFromXP, loadUserXP } from '../utils/xp.js';
 import { generateShareText, shareResult } from '../utils/share.js';
 import { encodePuzzle } from '../utils/puzzle-share.js';
-
-// ---------------------------------------------------------------------------
-// Difficulty label map
-// ---------------------------------------------------------------------------
-
-const DIFFICULTY_LABELS = {
-    easy: '쉬움',
-    medium: '보통',
-    normal: '보통',
-    hard: '어려움',
-    expert: '전문가',
-    master: '마스터',
-};
+import { DIFFICULTY_LABELS } from '../utils/constants.js';
 
 // ---------------------------------------------------------------------------
 // DOM references
